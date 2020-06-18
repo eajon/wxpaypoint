@@ -1,0 +1,71 @@
+apply plugin: 'com.android.application'
+apply from: 'depends.gradle'
+
+
+static def releaseTime() {
+    return new Date().format("yyyyMMdd", TimeZone.getTimeZone("UTC"))
+}
+
+android {
+    compileSdkVersion 29
+    buildToolsVersion "29.0.3"
+    defaultConfig {
+        applicationId "cn.csfz.paypoint"
+        minSdkVersion 16
+        targetSdkVersion 29
+        versionCode 18
+        versionName "1.1.8"
+        multiDexEnabled true
+        javaCompileOptions {
+            annotationProcessorOptions {
+                includeCompileClasspath true
+            }
+        }
+        ndk {
+            abiFilters "armeabi", "armeabi-v7a", "arm64-v8a"
+        }
+    }
+    signingConfigs {
+        config {
+            keyAlias 'load'
+            keyPassword '123456a'
+            storeFile file('keystore.jks')
+            storePassword '123456a'
+        }
+    }
+    sourceSets {
+        main {
+            jniLibs.srcDir 'libs'
+        }
+    }
+    buildTypes {
+        debug {
+            buildConfigField("boolean", "LOG_SWITCH", "true")
+            buildConfigField("String", "SERVER_URL", '"http://oa.focuszf.com"')
+        }
+        release {
+            buildConfigField("boolean", "LOG_SWITCH", "false")
+            buildConfigField("String", "SERVER_URL", '"https://sct1039.com"')
+            minifyEnabled false
+            signingConfig signingConfigs.config
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            applicationVariants.all { variant ->
+                if (variant.buildType.name == 'release') {
+                    variant.outputs.all {
+                        def apkName = "wxpaypoint"
+                        if (!variant.flavorName.isEmpty()) {
+                            apkName += "_${variant.flavorName}"
+                        }
+                        outputFileName = apkName + "_${variant.versionName}" + "_${variant.versionCode}" + "_${releaseTime()}.apk"
+                    }
+                }
+            }
+        }
+    }
+    compileOptions {
+        sourceCompatibility = 1.8
+        targetCompatibility = 1.8
+    }
+}
+
+
