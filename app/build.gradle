@@ -7,8 +7,8 @@ static def releaseTime() {
 }
 
 android {
-    compileSdkVersion 29
-    buildToolsVersion "29.0.3"
+    compileSdkVersion 30
+    buildToolsVersion "30.0.0"
     defaultConfig {
         applicationId "cn.csfz.paypoint"
         minSdkVersion 16
@@ -41,7 +41,7 @@ android {
     buildTypes {
         debug {
             buildConfigField("boolean", "LOG_SWITCH", "true")
-            buildConfigField("String", "SERVER_URL", '"http://oa.focuszf.com"')
+            buildConfigField("String", "SERVER_URL", '"http://139.217.185.93"')
         }
         release {
             buildConfigField("boolean", "LOG_SWITCH", "false")
@@ -65,6 +65,11 @@ android {
     compileOptions {
         sourceCompatibility = 1.8
         targetCompatibility = 1.8
+    }
+    repositories {
+        flatDir {
+            dirs 'libs'
+        }
     }
 }
 

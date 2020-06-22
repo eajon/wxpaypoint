@@ -1,5 +1,6 @@
 package cn.csfz.wxpaypoint.base;
 
+import android.os.Build;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -18,6 +19,7 @@ import com.umeng.analytics.MobclickAgent;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import cn.csfz.wxpaypoint.R;
+import cn.eajon.tool.ScreenUtils;
 
 
 /**
@@ -61,6 +63,11 @@ public abstract class BaseActivity extends RxAppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+//        hideBottomUIMenu();
+
+//        ScreenUtils.getScreenHeight();
+//        ScreenUtils.getScreenWidth();
+
         self = this;
         if (hasToolBar()) {
             LinearLayout layout = new LinearLayout(self);
@@ -78,7 +85,22 @@ public abstract class BaseActivity extends RxAppCompatActivity {
 
     }
 
-
+    /**
+     * 隐藏虚拟按键，并且全屏
+     */
+    protected void hideBottomUIMenu() {
+        //隐藏虚拟按键，并且全屏
+        if (Build.VERSION.SDK_INT > 11 && Build.VERSION.SDK_INT < 19) { // lower api
+            View v = this.getWindow().getDecorView();
+            v.setSystemUiVisibility(View.GONE);
+        } else if (Build.VERSION.SDK_INT >= 19) {
+            //for new api versions.
+            View decorView = getWindow().getDecorView();
+            int uiOptions = View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_FULLSCREEN;
+            decorView.setSystemUiVisibility(uiOptions);
+        }
+    }
     @Override
     protected void onResume() {
         super.onResume();
