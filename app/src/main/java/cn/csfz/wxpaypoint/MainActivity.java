@@ -110,19 +110,19 @@ public class MainActivity extends BaseActivity {
 
 
 //
-//        VersionApi.getVersion().request(new SolveObserver<BaseEntity<VersionModel>>(self) {
-//            @Override
-//            public void onSolve(BaseEntity<VersionModel> response) {
-//                VersionModel versionModel = response.getData();
-////                if (versionModel.getVersion() > codeversin) {
-//                    AutoInstaller installer = new AutoInstaller.Builder(self)
-//                            .setMode(AutoInstaller.MODE.ROOT_ONLY)
-//                            .build();
-//                    installer.installFromUrl(versionModel.getUrl());
-////                }
-//            }
-//
-//        });
+        VersionApi.getVersion().request(new SolveObserver<BaseEntity<VersionModel>>(self) {
+            @Override
+            public void onSolve(BaseEntity<VersionModel> response) {
+                VersionModel versionModel = response.getData();
+//                if (versionModel.getVersion() > codeversin) {
+                    AutoInstaller installer = new AutoInstaller.Builder(self)
+                            .setMode(AutoInstaller.MODE.ROOT_ONLY)
+                            .build();
+                    installer.installFromUrl(versionModel.getUrl());
+//                }
+            }
+
+        });
 
     }
 
