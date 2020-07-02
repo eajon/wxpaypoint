@@ -18,6 +18,7 @@ import com.microsoft.signalr.TransportEnum;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import cn.csfz.wxpaypoint.api.VersionApi;
 import cn.csfz.wxpaypoint.api.WxApi;
@@ -49,6 +50,25 @@ public class MainActivity extends BaseActivity {
 
     @Override
     protected void init(Bundle savedInstanceState) {
+
+//        HubConnection hubConnection = HubConnectionBuilder.create("http://websocket.vendor.cxwos.com:80/websocket/MachineHub?userId=0002&machineId=0002").withTransport(TransportEnum.LONG_POLLING).build();
+//        hubConnection.on("closeNotify", (message) -> {
+//            LogUtils.d(message);
+//        }, String.class);
+//        hubConnection.on("openNotify", (message) -> {
+//            LogUtils.d(message);
+//        }, String.class);
+////        hubConnection.on("updateNotify", (message) -> {
+////            AutoInstaller installer = new AutoInstaller.Builder(this)
+////                    .setMode(AutoInstaller.MODE.ROOT_ONLY)
+////                    .build();
+////            installer.installFromUrl(message);
+////        }, String.class);
+//        Observable.create((ObservableOnSubscribe) emitter -> {
+//                    hubConnection.start().blockingAwait(10, TimeUnit.SECONDS);
+//                    emitter.onComplete();
+//                }
+//        ).compose(ObservableUtils.ioMain()).subscribe();
 //        checkVersion();
 //        WxPayFace.getInstance().initWxpayface(this, new IWxPayfaceCallback() {
 //            @Override
