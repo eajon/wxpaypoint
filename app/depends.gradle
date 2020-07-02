@@ -27,6 +27,8 @@ dependencies {
     implementation 'com.umeng.umsdk:analytics:8.0.0'
     implementation 'com.umeng.umsdk:common:2.0.0'
     implementation 'com.github.a-voyager:AutoInstaller:v1.0'
+//    implementation 'com.smartarmenia:dotnetcoresignalrclientjava:1.14'
+    implementation 'com.microsoft.signalr:signalr:3.0.0'
 //    implementation (name: 'wxfacepay-release-2.14.800.n9anaw7e', ext: 'aar')
 
 

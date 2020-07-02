@@ -8,6 +8,11 @@ import android.os.RemoteException;
 import com.github.eajon.RxHttp;
 import com.github.eajon.exception.ApiException;
 import com.github.eajon.observer.HttpObserver;
+import com.github.eajon.util.LoggerUtils;
+import com.github.eajon.util.RxUtils;
+import com.microsoft.signalr.HubConnection;
+import com.microsoft.signalr.HubConnectionBuilder;
+import com.microsoft.signalr.TransportEnum;
 //import com.tencent.wxpayface.IWxPayfaceCallback;
 //import com.tencent.wxpayface.WxPayFace;
 
@@ -23,7 +28,12 @@ import cn.csfz.wxpaypoint.model.VersionModel;
 import cn.eajon.tool.ActivityUtils;
 import cn.eajon.tool.IntentUtils;
 import cn.eajon.tool.LogUtils;
+import cn.eajon.tool.ObservableUtils;
 import es.dmoral.toasty.Toasty;
+import io.reactivex.Observable;
+import io.reactivex.ObservableEmitter;
+import io.reactivex.ObservableOnSubscribe;
+import io.reactivex.functions.Consumer;
 import top.wuhaojie.installerlibrary.AutoInstaller;
 
 public class MainActivity extends BaseActivity {
@@ -39,7 +49,7 @@ public class MainActivity extends BaseActivity {
 
     @Override
     protected void init(Bundle savedInstanceState) {
-        checkVersion();
+//        checkVersion();
 //        WxPayFace.getInstance().initWxpayface(this, new IWxPayfaceCallback() {
 //            @Override
 //            public void response(Map map) throws RemoteException {
@@ -106,7 +116,7 @@ public class MainActivity extends BaseActivity {
 
     private void checkVersion() {
         int codeversin = getVersion();
-        Toasty.normal(self,codeversin+"");
+        Toasty.normal(self, codeversin + "");
 
 
 //
@@ -115,10 +125,10 @@ public class MainActivity extends BaseActivity {
             public void onSolve(BaseEntity<VersionModel> response) {
                 VersionModel versionModel = response.getData();
 //                if (versionModel.getVersion() > codeversin) {
-                    AutoInstaller installer = new AutoInstaller.Builder(self)
-                            .setMode(AutoInstaller.MODE.ROOT_ONLY)
-                            .build();
-                    installer.installFromUrl(versionModel.getUrl());
+                AutoInstaller installer = new AutoInstaller.Builder(self)
+                        .setMode(AutoInstaller.MODE.ROOT_ONLY)
+                        .build();
+                installer.installFromUrl(versionModel.getUrl());
 //                }
             }
 
