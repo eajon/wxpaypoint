@@ -12,7 +12,7 @@ android {
     defaultConfig {
         applicationId "cn.csfz.paypoint"
         minSdkVersion 16
-        targetSdkVersion 30
+        targetSdkVersion 26
         versionCode 3
         versionName "1.0.0"
         multiDexEnabled true
@@ -42,7 +42,7 @@ android {
     buildTypes {
         debug {
             buildConfigField("boolean", "LOG_SWITCH", "true")
-            buildConfigField("String", "SERVER_URL", '"http://139.217.185.93"')
+            buildConfigField("String", "SERVER_URL", '"http://vendorserver.vendor.cxwos.com"')
         }
         release {
             buildConfigField("boolean", "LOG_SWITCH", "false")

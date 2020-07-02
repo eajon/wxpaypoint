@@ -1,22 +1,26 @@
 package cn.csfz.wxpaypoint;
 
 import android.app.Application;
+import android.os.RemoteException;
 
 import com.github.eajon.RxHttp;
 import com.github.eajon.util.LoggerUtils;
 import com.microsoft.signalr.HubConnection;
 import com.microsoft.signalr.HubConnectionBuilder;
+import com.microsoft.signalr.HubConnectionState;
 import com.microsoft.signalr.TransportEnum;
+import com.tencent.wxpayface.IWxPayfaceCallback;
+import com.tencent.wxpayface.WxPayFace;
 import com.umeng.commonsdk.UMConfigure;
 
 import java.io.File;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import cn.eajon.tool.LogUtils;
 import cn.eajon.tool.ObservableUtils;
 import io.reactivex.Observable;
-import io.reactivex.ObservableEmitter;
-import io.reactivex.ObservableOnSubscribe;
+import io.reactivex.functions.Consumer;
 import okhttp3.OkHttpClient;
 import okhttp3.logging.HttpLoggingInterceptor;
 import top.wuhaojie.installerlibrary.AutoInstaller;
@@ -44,6 +48,13 @@ public class App extends Application {
                 .okHttpClient(httpClient)
                 .rxCache(new File(getExternalCacheDir(), "load"))
                 .log(true, "load");
+        WxPayFace.getInstance().initWxpayface(this, new IWxPayfaceCallback() {
+
+            @Override
+            public void response(Map map) throws RemoteException {
+                LogUtils.d(map.toString());
+            }
+        });
 
         HubConnection hubConnection = HubConnectionBuilder.create("http://websocket.vendor.cxwos.com/websocket/MachineHub?userId=0001&machineId=0001").withTransport(TransportEnum.LONG_POLLING).build();
         hubConnection.on("closeNotify", (message) -> {
@@ -58,13 +69,26 @@ public class App extends Application {
                     .build();
             installer.installFromUrl(message);
         }, String.class);
-        Observable.create(new ObservableOnSubscribe<String>() {
+//        Completable.create(emitter -> {
+//            hubConnection.start().blockingAwait(10, TimeUnit.SECONDS);
+//            emitter.onComplete();
+//        }).subscribeOn(Schedulers.io())
+//                .unsubscribeOn(Schedulers.io())
+//                .observeOn(AndroidSchedulers.mainThread()).subscribe();
+
+        Observable.interval(0, 10, TimeUnit.SECONDS).doOnNext(new Consumer<Long>() {
             @Override
-            public void subscribe(ObservableEmitter<String> emitter) throws Exception {
-                hubConnection.start().blockingAwait();
-                emitter.onComplete();
+            public void accept(Long integer) throws Exception {
+                if (hubConnection.getConnectionState() == HubConnectionState.DISCONNECTED) {
+                    try {
+                        hubConnection.start().blockingAwait(5, TimeUnit.SECONDS);
+                    } catch (Exception e) {
+
+                    }
+                }
             }
         }).compose(ObservableUtils.ioMain()).subscribe();
+
 
     }
 }
