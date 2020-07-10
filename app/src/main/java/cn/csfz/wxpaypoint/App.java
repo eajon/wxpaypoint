@@ -1,6 +1,7 @@
 package cn.csfz.wxpaypoint;
 
 import android.app.Application;
+import android.content.Context;
 import android.os.RemoteException;
 
 import com.github.eajon.RxHttp;
@@ -17,8 +18,11 @@ import java.io.File;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import cn.csfz.wxpaypoint.util.Utils;
+import cn.eajon.tool.DeviceUtils;
 import cn.eajon.tool.LogUtils;
 import cn.eajon.tool.ObservableUtils;
+import es.dmoral.toasty.Toasty;
 import io.reactivex.Observable;
 import io.reactivex.functions.Consumer;
 import okhttp3.OkHttpClient;
@@ -27,9 +31,13 @@ import top.wuhaojie.installerlibrary.AutoInstaller;
 
 public class App extends Application {
 
+
+    private static Application self;
+
     @Override
     public void onCreate() {
         super.onCreate();
+        self = this;
         UMConfigure.init(App.this, "5ddb92b3570df3af0a0002de", "csfz", UMConfigure.DEVICE_TYPE_PHONE, null);
         OkHttpClient.Builder httpClient = new OkHttpClient.Builder()
                 .addNetworkInterceptor(new HttpLoggingInterceptor(new HttpLoggingInterceptor.Logger() {
@@ -56,39 +64,14 @@ public class App extends Application {
             }
         });
 
-        HubConnection hubConnection = HubConnectionBuilder.create("http://websocket.vendor.cxwos.com/websocket/MachineHub?userId=0001&machineId=0001").withTransport(TransportEnum.LONG_POLLING).build();
-        hubConnection.on("closeNotify", (message) -> {
-            LogUtils.d(message);
-        }, String.class);
-        hubConnection.on("openNotify", (message) -> {
-            LogUtils.d(message);
-        }, String.class);
-        hubConnection.on("updateNotify", (message) -> {
-            AutoInstaller installer = new AutoInstaller.Builder(this)
-                    .setMode(AutoInstaller.MODE.ROOT_ONLY)
-                    .build();
-            installer.installFromUrl(message);
-        }, String.class);
-//        Completable.create(emitter -> {
-//            hubConnection.start().blockingAwait(10, TimeUnit.SECONDS);
-//            emitter.onComplete();
-//        }).subscribeOn(Schedulers.io())
-//                .unsubscribeOn(Schedulers.io())
-//                .observeOn(AndroidSchedulers.mainThread()).subscribe();
-
-        Observable.interval(0, 10, TimeUnit.SECONDS).doOnNext(new Consumer<Long>() {
-            @Override
-            public void accept(Long integer) throws Exception {
-                if (hubConnection.getConnectionState() == HubConnectionState.DISCONNECTED) {
-                    try {
-                        hubConnection.start().blockingAwait(5, TimeUnit.SECONDS);
-                    } catch (Exception e) {
-
-                    }
-                }
-            }
-        }).compose(ObservableUtils.ioMain()).subscribe();
 
 
+    }
+
+    public static Application getContext() {
+        if (self != null) {
+            return self;
+        }
+        return null;
     }
 }
