@@ -4,6 +4,8 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 
+import com.sunfusheng.daemon.DaemonHolder;
+
 import cn.csfz.wxpaypoint.util.Utils;
 import cn.eajon.tool.AppUtils;
 import cn.eajon.tool.LogUtils;
@@ -13,7 +15,7 @@ public class UpdateReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-
+        DaemonHolder.startService();
 
         String packageName = intent.getDataString();
         if (intent.getAction().equals(Intent.ACTION_PACKAGE_REPLACED)) {//接收升级广播

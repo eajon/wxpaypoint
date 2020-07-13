@@ -19,6 +19,7 @@ import com.umeng.analytics.MobclickAgent;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import cn.csfz.wxpaypoint.R;
+import cn.csfz.wxpaypoint.util.ActivityCollector;
 import cn.eajon.tool.ScreenUtils;
 
 
@@ -63,6 +64,7 @@ public abstract class BaseActivity extends RxAppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        ActivityCollector.addActivity(this, getClass());
 //        hideBottomUIMenu();
 
 //        ScreenUtils.getScreenHeight();
@@ -116,6 +118,7 @@ public abstract class BaseActivity extends RxAppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        ActivityCollector.removeActivity(this);
     }
 
     protected void initToolBar(boolean isLeftTv, boolean isTitleTv, boolean isRightTv, boolean isLeftIv, boolean isCenterIv, boolean isRightIV) {

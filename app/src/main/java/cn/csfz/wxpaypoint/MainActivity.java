@@ -15,6 +15,7 @@ import com.microsoft.signalr.HubConnection;
 import com.microsoft.signalr.HubConnectionBuilder;
 import com.microsoft.signalr.HubConnectionState;
 import com.microsoft.signalr.TransportEnum;
+import com.sunfusheng.daemon.DaemonHolder;
 import com.tencent.wxpayface.IWxPayfaceCallback;
 import com.tencent.wxpayface.WxPayFace;
 
@@ -64,6 +65,8 @@ public class MainActivity extends BaseActivity {
 
     @Override
     protected void initLogic() {
+        DaemonHolder.startService();
+
         String sn = Utils.getDeviceSN();
         HubConnection hubConnection = HubConnectionBuilder.create("http://websocket.vendor.cxwos.com/websocket/MachineHub?userId=" + sn + "&machineId=" + sn).withTransport(TransportEnum.LONG_POLLING).build();
         hubConnection.on("closeNotify", (message) -> {
@@ -133,7 +136,7 @@ public class MainActivity extends BaseActivity {
                     try {
                         hubConnection.start().blockingAwait(5, TimeUnit.SECONDS);
                     } catch (Exception e) {
-
+                       LogUtils.e(e.getMessage());
                     }
                 }
             }
@@ -225,18 +228,57 @@ public class MainActivity extends BaseActivity {
 
     @OnClick(R.id.open_iv)
     public void onViewClicked() {
-        Toasty.success(self, getVersion()).show();
-        WxPayFace.getInstance().getWxpayfaceRawdata(new IWxPayfaceCallback() {
-            @Override
-            public void response(final Map info) throws RemoteException {
-                if (info == null) {
-                    new RuntimeException("调用返回为空").printStackTrace();
-                    return;
-                } else {
-                    String rawdata = (String) info.get("rawdata");
-                    getWxAuthInfo(rawdata);
-                }
-            }
-        });
+//        Toasty.success(self, getVersion()).show();
+//        WxPayFace.getInstance().getWxpayfaceRawdata(new IWxPayfaceCallback() {
+//            @Override
+//            public void response(final Map info) throws RemoteException {
+//                if (info == null) {
+//                    new RuntimeException("调用返回为空").printStackTrace();
+//                    return;
+//                } else {
+//                    String rawdata = (String) info.get("rawdata");
+//                    getWxAuthInfo(rawdata);
+//                }
+//            }
+//        });
+
+        updateApk();
+    }
+
+
+    private void updateApk()
+    {
+        AutoInstaller installer = new AutoInstaller.Builder(self)
+                .setMode(AutoInstaller.MODE.ROOT_ONLY)
+                .build();
+        installer.installFromUrl("http://ytj.cxwos.com/app-debug.apk");
+
+//        DownloadTask downloadTask = new DownloadTask();
+//        downloadTask.setName("update.apk");
+//        new RxHttp.Builder().baseUrl("http://ytj.cxwos.com/").get("app-debug.apk").download(downloadTask).withDialog(self, "更新中...").build().request(new DownloadObserver() {
+//            @Override
+//            public void onPause(DownloadTask downloadTask) {
+//                LogUtils.d("pausessssssssssssss");
+//            }
+//
+//            @Override
+//            public void onProgress(DownloadTask downloadTask) {
+//                LogUtils.d("progress");
+//            }
+//
+//            @Override
+//            public void onSuccess(DownloadTask response) {
+//                AutoInstaller installer = new AutoInstaller.Builder(self)
+//                        .setMode(AutoInstaller.MODE.ROOT_ONLY)
+//                        .build();
+//                installer.install(response.getLocalDir() + File.separator + response.getName());
+////                            AppUtils.installAppSilent(response.getLocalDir()+ File.separator+response.getName());
+//            }
+//
+//            @Override
+//            public void onError(ApiException exception) {
+//                LogUtils.d("errorrrrrrr");
+//            }
+//        });
     }
 }

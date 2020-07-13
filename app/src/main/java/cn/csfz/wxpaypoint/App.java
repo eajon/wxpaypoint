@@ -1,8 +1,14 @@
 package cn.csfz.wxpaypoint;
 
 import android.app.Application;
+import android.app.job.JobInfo;
+import android.app.job.JobScheduler;
+import android.content.ComponentName;
 import android.content.Context;
+import android.os.Build;
 import android.os.RemoteException;
+
+import androidx.annotation.RequiresApi;
 
 import com.github.eajon.RxHttp;
 import com.github.eajon.util.LoggerUtils;
@@ -10,6 +16,7 @@ import com.microsoft.signalr.HubConnection;
 import com.microsoft.signalr.HubConnectionBuilder;
 import com.microsoft.signalr.HubConnectionState;
 import com.microsoft.signalr.TransportEnum;
+import com.sunfusheng.daemon.DaemonHolder;
 import com.tencent.wxpayface.IWxPayfaceCallback;
 import com.tencent.wxpayface.WxPayFace;
 import com.umeng.commonsdk.UMConfigure;
@@ -34,6 +41,7 @@ public class App extends Application {
 
     private static Application self;
 
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Override
     public void onCreate() {
         super.onCreate();
@@ -63,8 +71,7 @@ public class App extends Application {
                 LogUtils.d(map.toString());
             }
         });
-
-
+        DaemonHolder.init(this, HeartBeatService.class);
 
     }
 
