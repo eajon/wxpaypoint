@@ -15,7 +15,7 @@ public class WxApi {
     {
         RawData rawData =new RawData();
         rawData.setRawdata(rawDate);
-        return new RxHttp.Builder().post("/WeChatPay/GetWxPayFaceAuthinfo").json(rawData).build();
+        return new RxHttp.Builder().post("/Visual/GetWxPayFaceAuthinfo").json(rawData).build();
     }
 
     public static RxHttp getWxUnion(String faceSid,String openId,String outTradeNo)

@@ -12,6 +12,8 @@ import com.sunfusheng.daemon.AbsHeartBeatService;
 
 import java.util.List;
 
+import cn.csfz.wxpaypoint.activity.CloseDoorActivity;
+import cn.csfz.wxpaypoint.activity.OpenDoorActivity;
 import cn.csfz.wxpaypoint.util.ActivityCollector;
 import cn.eajon.tool.ActivityUtils;
 
@@ -52,7 +54,10 @@ public class HeartBeatService extends AbsHeartBeatService {
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(i);
         }else {
-           moveToFront();
+            if(!(ActivityCollector.isActivityExist(CloseDoorActivity.class)||ActivityCollector.isActivityExist(OpenDoorActivity.class)))
+            {
+                moveToFront();
+            }
         }
     }
 
