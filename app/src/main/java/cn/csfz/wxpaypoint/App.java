@@ -10,6 +10,7 @@ import android.os.RemoteException;
 
 import androidx.annotation.RequiresApi;
 
+import com.danikula.videocache.HttpProxyCacheServer;
 import com.github.eajon.RxHttp;
 import com.github.eajon.util.LoggerUtils;
 import com.microsoft.signalr.HubConnection;
@@ -63,7 +64,7 @@ public class App extends Application {
                 .baseUrl(BuildConfig.SERVER_URL)
                 .okHttpClient(httpClient)
                 .rxCache(new File(getExternalCacheDir(), "load"))
-                .log(true, "load");
+                .log(!BuildConfig.PROD, "load");
         WxPayFace.getInstance().initWxpayface(this, new IWxPayfaceCallback() {
 
             @Override
@@ -81,4 +82,18 @@ public class App extends Application {
         }
         return null;
     }
+
+    private HttpProxyCacheServer proxy;
+
+    public static HttpProxyCacheServer getProxy(Context context) {
+        App app = (App) context.getApplicationContext();
+        return app.proxy == null ? (app.proxy = app.newProxy()) : app.proxy;
+    }
+
+    private HttpProxyCacheServer newProxy() {
+        return new HttpProxyCacheServer.Builder(self)
+                .maxCacheSize(1024 * 1024 * 1024)       // 1 Gb for cache
+                .build();
+    }
+
 }

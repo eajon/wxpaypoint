@@ -1,6 +1,8 @@
 package cn.csfz.wxpaypoint.model;
 
 
+import java.util.List;
+
 import lombok.Data;
 
 @Data
@@ -14,4 +16,6 @@ public class VersionModel {
 
     private int version;
     private String url;
+    private int adVersion;
+    private List<Video> videos;
 }

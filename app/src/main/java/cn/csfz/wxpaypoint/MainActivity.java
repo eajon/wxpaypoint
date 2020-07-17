@@ -1,16 +1,24 @@
 package cn.csfz.wxpaypoint;
 
+import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.hardware.display.DisplayManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.RemoteException;
+import android.view.Display;
+import android.view.WindowManager;
 import android.widget.ImageView;
+
+import androidx.annotation.RequiresApi;
 
 import com.github.eajon.RxHttp;
 import com.github.eajon.exception.ApiException;
 import com.github.eajon.observer.DownloadObserver;
 import com.github.eajon.observer.HttpObserver;
 import com.github.eajon.task.DownloadTask;
+import com.google.gson.Gson;
 import com.microsoft.signalr.HubConnection;
 import com.microsoft.signalr.HubConnectionBuilder;
 import com.microsoft.signalr.HubConnectionState;
@@ -20,7 +28,9 @@ import com.tencent.wxpayface.IWxPayfaceCallback;
 import com.tencent.wxpayface.WxPayFace;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -29,16 +39,20 @@ import butterknife.ButterKnife;
 import butterknife.OnClick;
 import cn.csfz.wxpaypoint.activity.CloseDoorActivity;
 import cn.csfz.wxpaypoint.activity.OpenDoorActivity;
+import cn.csfz.wxpaypoint.api.VersionApi;
 import cn.csfz.wxpaypoint.api.WxApi;
 import cn.csfz.wxpaypoint.base.BaseActivity;
+import cn.csfz.wxpaypoint.compont.AdPresentation;
 import cn.csfz.wxpaypoint.compont.SolveObserver;
 import cn.csfz.wxpaypoint.model.AuthInfo;
 import cn.csfz.wxpaypoint.model.BaseEntity;
+import cn.csfz.wxpaypoint.model.VersionModel;
+import cn.csfz.wxpaypoint.model.Video;
 import cn.csfz.wxpaypoint.util.Utils;
 import cn.eajon.tool.ActivityUtils;
-import cn.eajon.tool.AppUtils;
 import cn.eajon.tool.LogUtils;
 import cn.eajon.tool.ObservableUtils;
+import cn.eajon.tool.SPUtils;
 import es.dmoral.toasty.Toasty;
 import io.reactivex.Observable;
 import io.reactivex.functions.Consumer;
@@ -47,6 +61,9 @@ import top.wuhaojie.installerlibrary.AutoInstaller;
 public class MainActivity extends BaseActivity {
     @BindView(R.id.open_iv)
     ImageView openIv;
+
+    private List<Video> videoPaths;
+    AdPresentation adPresentation;
 
     @Override
     protected boolean hasToolBar() {
@@ -60,12 +77,33 @@ public class MainActivity extends BaseActivity {
 
     @Override
     protected void init(Bundle savedInstanceState) {
-        checkVersion();
+//        checkVersion();
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
     @Override
     protected void initLogic() {
         DaemonHolder.startService();
+        getSecondDisplay();
+        //for test secondDisplay
+        videoPaths = new ArrayList<>();
+        Video video = new Video();
+        video.setDelay(10);
+        video.setType(1);
+        video.setImage("https://qmoss.blob.core.chinacloudapi.cn/ads/0262203af97d0be0843e69a5134b6fff.jpg");
+        video.setUrl("https://qmoss.blob.core.chinacloudapi.cn/ads/23ecd9d8ee137dbebd5a87e43c64432e.mp4");
+        videoPaths.add(video);
+        video = new Video();
+        video.setDelay(10);
+        video.setType(0);
+        video.setImage("https://qmoss.blob.core.chinacloudapi.cn/ads/8241f1f02a86902f37d6f2710d81965c.jpg");
+        video.setUrl("https://qmoss.blob.core.chinacloudapi.cn/ads/8241f1f02a86902f37d6f2710d81965c.mp4");
+        videoPaths.add(video);
+        VersionModel versionModel = new VersionModel();
+        versionModel.setAdVersion(5);
+        versionModel.setVideos(videoPaths);
+        updateAd(versionModel);
+
 
         String sn = Utils.getDeviceSN();
         HubConnection hubConnection = HubConnectionBuilder.create("http://websocket.vendor.cxwos.com/websocket/MachineHub?userId=" + sn + "&machineId=" + sn).withTransport(TransportEnum.LONG_POLLING).build();
@@ -82,52 +120,28 @@ public class MainActivity extends BaseActivity {
         hubConnection.on("updateNotify", (message) -> {
 //            Toasty.normal(self, "自动更新开始").show();
             LogUtils.d(message);
-
-
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    DownloadTask downloadTask = new DownloadTask();
-                    downloadTask.setName("update.apk");
-                    new RxHttp.Builder().baseUrl("http://ytj.cxwos.com/").get("app-debug.apk").download(downloadTask).withDialog(self, "更新中...").build().request(new DownloadObserver() {
-                        @Override
-                        public void onPause(DownloadTask downloadTask) {
-                            LogUtils.d("pausessssssssssssss");
-                        }
-
-                        @Override
-                        public void onProgress(DownloadTask downloadTask) {
-                            LogUtils.d("progress");
-                        }
-
-                        @Override
-                        public void onSuccess(DownloadTask response) {
-                            AutoInstaller installer = new AutoInstaller.Builder(self)
-                                    .setMode(AutoInstaller.MODE.ROOT_ONLY)
-                                    .build();
-                            installer.install(response.getLocalDir() + File.separator + response.getName());
-//                            AppUtils.installAppSilent(response.getLocalDir()+ File.separator+response.getName());
-                        }
-
-                        @Override
-                        public void onError(ApiException exception) {
-                            LogUtils.d("errorrrrrrr");
-                        }
-                    });
+                    VersionModel versionModel = new Gson().fromJson(message, VersionModel.class);
+                    updateApk(versionModel);
                 }
             });
 
-//            AutoInstaller installer = new AutoInstaller.Builder(this)
-//                    .setMode(AutoInstaller.MODE.ROOT_ONLY)
-//                    .build();
-//            installer.installFromUrl(message);
         }, String.class);
-//        Completable.create(emitter -> {
-//            hubConnection.start().blockingAwait(10, TimeUnit.SECONDS);
-//            emitter.onComplete();
-//        }).subscribeOn(Schedulers.io())
-//                .unsubscribeOn(Schedulers.io())
-//                .observeOn(AndroidSchedulers.mainThread()).subscribe();
+        hubConnection.on("updateAd", (message) -> {
+//            Toasty.normal(self, "自动更新开始").show();
+            LogUtils.d(message);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    VersionModel versionModel = new Gson().fromJson(message, VersionModel.class);
+                    updateAd(versionModel);
+                }
+            });
+
+        }, String.class);
+
 
         Observable.interval(0, 10, TimeUnit.SECONDS).doOnNext(new Consumer<Long>() {
             @Override
@@ -136,11 +150,26 @@ public class MainActivity extends BaseActivity {
                     try {
                         hubConnection.start().blockingAwait(5, TimeUnit.SECONDS);
                     } catch (Exception e) {
-                       LogUtils.e(e.getMessage());
+                        LogUtils.e(e.getMessage());
                     }
                 }
             }
         }).compose(ObservableUtils.ioMain()).subscribe();
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
+    private void getSecondDisplay() {
+
+        DisplayManager manager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
+        Display[] displays = manager.getDisplays();
+        // displays[0] 主屏
+        // displays[1] 副屏
+        adPresentation = new AdPresentation(App.getContext(), displays[displays.length - 1]);
+        adPresentation.getWindow().setType(
+                WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
+        adPresentation.show();
+
+
     }
 
     private void getWxAuthInfo(String rawdata) {
@@ -183,27 +212,55 @@ public class MainActivity extends BaseActivity {
     }
 
     private void checkVersion() {
-        int codeversin = getVersion();
-        Toasty.normal(self, codeversin + "");
-
-
-////
-//        VersionApi.getVersion().request(new SolveObserver<BaseEntity<VersionModel>>(self) {
-//            @Override
-//            public void onSolve(BaseEntity<VersionModel> response) {
-//                VersionModel versionModel = response.getData();
-////                if (versionModel.getVersion() > codeversin) {
-//                    AutoInstaller installer = new AutoInstaller.Builder(self)
-//                            .setMode(AutoInstaller.MODE.ROOT_ONLY)
-//                            .build();
-//                    installer.installFromUrl(versionModel.getUrl());
-////                }
-//            }
-
-//        });
-
+        VersionApi.getVersion().request(new SolveObserver<BaseEntity<VersionModel>>(self) {
+            @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
+            @Override
+            public void onSolve(BaseEntity<VersionModel> response) {
+                updateApk(response.getData());
+                updateAd(response.getData());
+            }
+        });
     }
 
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        // TODO: add setContentView(...) invocation
+        ButterKnife.bind(this);
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
+    @OnClick(R.id.open_iv)
+    public void onViewClicked() {
+        WxPayFace.getInstance().getWxpayfaceRawdata(new IWxPayfaceCallback() {
+            @Override
+            public void response(final Map info) throws RemoteException {
+                if (info == null) {
+                    new RuntimeException("调用返回为空").printStackTrace();
+                    return;
+                } else {
+                    String rawdata = (String) info.get("rawdata");
+                    getWxAuthInfo(rawdata);
+                }
+            }
+        });
+    }
+
+
+    private void updateApk(VersionModel versionModel) {
+        if (versionModel.getVersion() > getVersion()) {
+            AutoInstaller installer = new AutoInstaller.Builder(self)
+                    .setMode(AutoInstaller.MODE.ROOT_ONLY)
+                    .build();
+            installer.installFromUrl(versionModel.getUrl());
+        }
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
+    private void updateAd(VersionModel versionModel) {
+        adPresentation.updateVideos(versionModel);
+    }
 
     public int getVersion() {
         PackageInfo pkg;
@@ -217,68 +274,5 @@ public class MainActivity extends BaseActivity {
             e.printStackTrace();
         }
         return versionCode;
-    }
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        // TODO: add setContentView(...) invocation
-        ButterKnife.bind(this);
-    }
-
-    @OnClick(R.id.open_iv)
-    public void onViewClicked() {
-//        Toasty.success(self, getVersion()).show();
-//        WxPayFace.getInstance().getWxpayfaceRawdata(new IWxPayfaceCallback() {
-//            @Override
-//            public void response(final Map info) throws RemoteException {
-//                if (info == null) {
-//                    new RuntimeException("调用返回为空").printStackTrace();
-//                    return;
-//                } else {
-//                    String rawdata = (String) info.get("rawdata");
-//                    getWxAuthInfo(rawdata);
-//                }
-//            }
-//        });
-
-        updateApk();
-    }
-
-
-    private void updateApk()
-    {
-        AutoInstaller installer = new AutoInstaller.Builder(self)
-                .setMode(AutoInstaller.MODE.ROOT_ONLY)
-                .build();
-        installer.installFromUrl("http://ytj.cxwos.com/app-debug.apk");
-
-//        DownloadTask downloadTask = new DownloadTask();
-//        downloadTask.setName("update.apk");
-//        new RxHttp.Builder().baseUrl("http://ytj.cxwos.com/").get("app-debug.apk").download(downloadTask).withDialog(self, "更新中...").build().request(new DownloadObserver() {
-//            @Override
-//            public void onPause(DownloadTask downloadTask) {
-//                LogUtils.d("pausessssssssssssss");
-//            }
-//
-//            @Override
-//            public void onProgress(DownloadTask downloadTask) {
-//                LogUtils.d("progress");
-//            }
-//
-//            @Override
-//            public void onSuccess(DownloadTask response) {
-//                AutoInstaller installer = new AutoInstaller.Builder(self)
-//                        .setMode(AutoInstaller.MODE.ROOT_ONLY)
-//                        .build();
-//                installer.install(response.getLocalDir() + File.separator + response.getName());
-////                            AppUtils.installAppSilent(response.getLocalDir()+ File.separator+response.getName());
-//            }
-//
-//            @Override
-//            public void onError(ApiException exception) {
-//                LogUtils.d("errorrrrrrr");
-//            }
-//        });
     }
 }

@@ -18,9 +18,9 @@ import com.umeng.analytics.MobclickAgent;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import cn.csfz.wxpaypoint.BuildConfig;
 import cn.csfz.wxpaypoint.R;
 import cn.csfz.wxpaypoint.util.ActivityCollector;
-import cn.eajon.tool.ScreenUtils;
 
 
 /**
@@ -65,7 +65,9 @@ public abstract class BaseActivity extends RxAppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         ActivityCollector.addActivity(this, getClass());
-//        hideBottomUIMenu();
+        if (BuildConfig.PROD) {
+            hideBottomUIMenu();
+        }
 
 //        ScreenUtils.getScreenHeight();
 //        ScreenUtils.getScreenWidth();
@@ -103,6 +105,7 @@ public abstract class BaseActivity extends RxAppCompatActivity {
             decorView.setSystemUiVisibility(uiOptions);
         }
     }
+
     @Override
     protected void onResume() {
         super.onResume();
