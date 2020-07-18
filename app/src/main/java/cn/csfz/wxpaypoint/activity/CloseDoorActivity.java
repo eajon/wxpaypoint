@@ -14,6 +14,8 @@ import io.reactivex.disposables.Disposable;
 public class CloseDoorActivity extends BaseActivity {
 
 
+
+
     @Override
     protected boolean hasToolBar() {
         return false;
@@ -41,7 +43,7 @@ public class CloseDoorActivity extends BaseActivity {
 
             @Override
             public void onNext(Long aLong) {
-                if (aLong > 30) {
+                if (aLong > 5) {
                     CloseDoorActivity.this.finish();
                 }
             }

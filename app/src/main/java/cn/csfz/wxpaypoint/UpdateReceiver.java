@@ -15,7 +15,7 @@ public class UpdateReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        DaemonHolder.startService();
+
 
         String packageName = intent.getDataString();
         if (intent.getAction().equals(Intent.ACTION_PACKAGE_REPLACED)) {//接收升级广播
@@ -30,7 +30,9 @@ public class UpdateReceiver extends BroadcastReceiver {
             }
         } else if (intent.getAction().equals(Intent.ACTION_PACKAGE_REMOVED)) { //接收卸载广播
             LogUtils.e("onReceive:卸载了" + packageName);
+        } else if (intent.getAction().equals("android.intent.action.BOOT_COMPLETED")) {
+            Utils.restartAPP(context);
         }
-
+//        DaemonHolder.startService();
     }
 }

@@ -14,6 +14,7 @@ public class VersionModel {
      * url : http://ytj.cxwos.com/wxpaypoint_1.0.0_1_20200622.apk
      */
 
+    private String data;
     private int version;
     private String url;
     private int adVersion;

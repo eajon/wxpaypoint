@@ -62,7 +62,6 @@ public class MainActivity extends BaseActivity {
     @BindView(R.id.open_iv)
     ImageView openIv;
 
-    private List<Video> videoPaths;
     AdPresentation adPresentation;
 
     @Override
@@ -86,23 +85,23 @@ public class MainActivity extends BaseActivity {
         DaemonHolder.startService();
         getSecondDisplay();
         //for test secondDisplay
-        videoPaths = new ArrayList<>();
-        Video video = new Video();
-        video.setDelay(10);
-        video.setType(1);
-        video.setImage("https://qmoss.blob.core.chinacloudapi.cn/ads/0262203af97d0be0843e69a5134b6fff.jpg");
-        video.setUrl("https://qmoss.blob.core.chinacloudapi.cn/ads/23ecd9d8ee137dbebd5a87e43c64432e.mp4");
-        videoPaths.add(video);
-        video = new Video();
-        video.setDelay(10);
-        video.setType(0);
-        video.setImage("https://qmoss.blob.core.chinacloudapi.cn/ads/8241f1f02a86902f37d6f2710d81965c.jpg");
-        video.setUrl("https://qmoss.blob.core.chinacloudapi.cn/ads/8241f1f02a86902f37d6f2710d81965c.mp4");
-        videoPaths.add(video);
-        VersionModel versionModel = new VersionModel();
-        versionModel.setAdVersion(5);
-        versionModel.setVideos(videoPaths);
-        updateAd(versionModel);
+//        List<Video> videoPaths = new ArrayList<>();
+//        Video video = new Video();
+//        video.setDelay(10);
+//        video.setType(1);
+//        video.setImage("https://qmoss.blob.core.chinacloudapi.cn/ads/0262203af97d0be0843e69a5134b6fff.jpg");
+//        video.setUrl("https://qmoss.blob.core.chinacloudapi.cn/ads/23ecd9d8ee137dbebd5a87e43c64432e.mp4");
+//        videoPaths.add(video);
+//        video = new Video();
+//        video.setDelay(10);
+//        video.setType(0);
+//        video.setImage("https://qmoss.blob.core.chinacloudapi.cn/ads/8241f1f02a86902f37d6f2710d81965c.jpg");
+//        video.setUrl("https://qmoss.blob.core.chinacloudapi.cn/ads/8241f1f02a86902f37d6f2710d81965c.mp4");
+//        videoPaths.add(video);
+//        VersionModel versionModel = new VersionModel();
+//        versionModel.setAdVersion(5);
+//        versionModel.setVideos(videoPaths);
+//        updateAd(versionModel);
 
 
         String sn = Utils.getDeviceSN();
@@ -162,6 +161,8 @@ public class MainActivity extends BaseActivity {
 
         DisplayManager manager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
         Display[] displays = manager.getDisplays();
+//        int width =displays[displays.length - 1].getWidth();
+//        int height =displays[displays.length - 1].getHeight();
         // displays[0] 主屏
         // displays[1] 副屏
         adPresentation = new AdPresentation(App.getContext(), displays[displays.length - 1]);

@@ -15,12 +15,25 @@
         android:layout_centerHorizontal="true"
         android:layout_marginTop="100dp"
         android:src="@mipmap/close_icon" />
+
     <TextView
+        android:id="@+id/text_view"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_centerInParent="true"
+        android:paddingTop="200dp"
         android:text="恭喜您关门成功"
-        android:textSize="20dp"
-        android:paddingTop="100dp"
-        android:textColor="@android:color/black"/>
+        android:textColor="@android:color/black"
+        android:textSize="20dp" />
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:layout_below="@+id/text_view"
+        android:layout_centerInParent="true"
+        android:layout_margin="20dp"
+        android:background="@drawable/red_button_shape"
+        android:text="返回"
+        android:textColor="@android:color/white"
+        android:textSize="20dp"/>
 </RelativeLayout>

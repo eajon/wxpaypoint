@@ -63,17 +63,20 @@ public class AdPresentation extends Presentation {
         setContentView(R.layout.dialog_ad);
         ButterKnife.bind(this);
         init();
-//        setContentView(new View(outerContext));
-//        Intent LaunchIntent = outerContext.getPackageManager().getLaunchIntentForPackage("com.hc.player");
-//        outerContext.startActivity(LaunchIntent);
     }
 
     private void init() {
+        if (videoPaths == null) {
+            if (null != SPUtils.getData("version", VersionModel.class)) {
+                videoPaths = SPUtils.getData("version", VersionModel.class).getVideos();
+            }
+
+        }
         if (videoPaths != null && videoPaths.size() > 0) {
             videoView.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
                 @Override
                 public void onCompletion(MediaPlayer mp) {
-                    videoImage.setVisibility(View.VISIBLE);
+//                    videoImage.setVisibility(View.VISIBLE);
                     index++;
                     if (index >= videoPaths.size()) {
                         index = 0;
@@ -139,7 +142,8 @@ public class AdPresentation extends Presentation {
      */
     private void startVideos() {
         if (videoPaths.get(index).getType() == 0) {
-            Glide.with(this.getContext()).load(videoPaths.get(index).getImage()).into(videoImage);
+            videoImage.setVisibility(View.GONE);
+//            Glide.with(this.getContext()).load(videoPaths.get(index).getImage()).into(videoImage);
             if (!StringUtils.isEmpty(videoPaths.get(index).getUrl())) {
                 HttpProxyCacheServer proxy = App.getProxy(App.getContext());
                 String proxyUrl = proxy.getProxyUrl(videoPaths.get(index).getUrl());

@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import cn.csfz.wxpaypoint.util.Utils;
+import cn.eajon.tool.AppUtils;
 import cn.eajon.tool.DeviceUtils;
 import cn.eajon.tool.LogUtils;
 import cn.eajon.tool.ObservableUtils;
@@ -37,7 +38,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.logging.HttpLoggingInterceptor;
 import top.wuhaojie.installerlibrary.AutoInstaller;
 
-public class App extends Application {
+public class App extends Application implements Thread.UncaughtExceptionHandler{
 
 
     private static Application self;
@@ -47,6 +48,7 @@ public class App extends Application {
     public void onCreate() {
         super.onCreate();
         self = this;
+        Thread.setDefaultUncaughtExceptionHandler(this);
         UMConfigure.init(App.this, "5ddb92b3570df3af0a0002de", "csfz", UMConfigure.DEVICE_TYPE_PHONE, null);
         OkHttpClient.Builder httpClient = new OkHttpClient.Builder()
                 .addNetworkInterceptor(new HttpLoggingInterceptor(new HttpLoggingInterceptor.Logger() {
@@ -95,5 +97,12 @@ public class App extends Application {
                 .maxCacheSize(1024 * 1024 * 1024)       // 1 Gb for cache
                 .build();
     }
+
+    @Override
+    public void uncaughtException(Thread thread, Throwable ex) {
+        Utils.restartAPP(self);
+        System.exit(0);
+    }
+
 
 }
