@@ -18,12 +18,19 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.VideoView;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
+import androidx.core.graphics.PathUtils;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.bitmap_recycle.BitmapPool;
+import com.bumptech.glide.load.resource.bitmap.BitmapTransformation;
+import com.bumptech.glide.request.RequestOptions;
 import com.danikula.videocache.HttpProxyCacheServer;
 
+import java.io.File;
+import java.security.MessageDigest;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -35,6 +42,7 @@ import cn.csfz.wxpaypoint.R;
 import cn.csfz.wxpaypoint.model.VersionModel;
 import cn.csfz.wxpaypoint.model.Video;
 import cn.csfz.wxpaypoint.widget.FullScreenVideoView;
+import cn.eajon.tool.LogUtils;
 import cn.eajon.tool.ObservableUtils;
 import cn.eajon.tool.SPUtils;
 import cn.eajon.tool.StringUtils;
@@ -62,62 +70,40 @@ public class AdPresentation extends Presentation {
         super(outerContext, display);
         setContentView(R.layout.dialog_ad);
         ButterKnife.bind(this);
-        init();
-    }
-
-    private void init() {
-        if (videoPaths == null) {
-            if (null != SPUtils.getData("version", VersionModel.class)) {
-                videoPaths = SPUtils.getData("version", VersionModel.class).getVideos();
+        videoView.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+            @Override
+            public void onCompletion(MediaPlayer mp) {
+                videoImage.setVisibility(View.VISIBLE);
+                index++;
+                if (index >= videoPaths.size()) {
+                    index = 0;
+                }
+                startVideos();
             }
+        });
 
-        }
-        if (videoPaths != null && videoPaths.size() > 0) {
-            videoView.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                @Override
-                public void onCompletion(MediaPlayer mp) {
-//                    videoImage.setVisibility(View.VISIBLE);
-                    index++;
-                    if (index >= videoPaths.size()) {
-                        index = 0;
+        videoView.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+            @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
+            @Override
+            public void onPrepared(MediaPlayer mp) {
+                videoView.setOnInfoListener(new MediaPlayer.OnInfoListener() {
+                    @Override
+                    public boolean onInfo(MediaPlayer mp, int what, int extra) {
+                        videoImage.setVisibility(View.GONE);
+                        videoView.setBackgroundColor(Color.TRANSPARENT);
+                        return false;
                     }
-                    startVideos();
-                }
-            });
+                });
+            }
+        });
 
-            videoView.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
-                @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
-                @Override
-                public void onPrepared(MediaPlayer mp) {
-                    videoView.setOnInfoListener(new MediaPlayer.OnInfoListener() {
-                        @Override
-                        public boolean onInfo(MediaPlayer mp, int what, int extra) {
-                            videoImage.setVisibility(View.GONE);
-                            videoView.setBackgroundColor(Color.TRANSPARENT);
-                            return false;
-                        }
-                    });
-                }
-            });
-
-            videoView.setOnErrorListener(new MediaPlayer.OnErrorListener() {
-                @Override
-                public boolean onError(MediaPlayer mp, int what, int extra) {
-                    videoView.stopPlayback(); //播放异常，则停止播放，防止弹窗使界面阻塞
-                    return true;
-                }
-            });
-            startVideos();
-        }
-    }
-
-    public AdPresentation(Context outerContext, Display display, VersionModel versionModel) {
-        super(outerContext, display);
-        setContentView(R.layout.dialog_ad);
-        ButterKnife.bind(this);
-
-
-        updateVideos(versionModel);
+        videoView.setOnErrorListener(new MediaPlayer.OnErrorListener() {
+            @Override
+            public boolean onError(MediaPlayer mp, int what, int extra) {
+                videoView.stopPlayback(); //播放异常，则停止播放，防止弹窗使界面阻塞
+                return true;
+            }
+        });
     }
 
     public void updateVideos(VersionModel versionModel) {
@@ -133,7 +119,7 @@ public class AdPresentation extends Presentation {
             SPUtils.putData("version", versionModel);
             this.videoPaths = versionModel.getVideos();
         }
-        init();
+        startVideos();
     }
 
 
@@ -142,11 +128,18 @@ public class AdPresentation extends Presentation {
      */
     private void startVideos() {
         if (videoPaths.get(index).getType() == 0) {
-            videoImage.setVisibility(View.GONE);
-//            Glide.with(this.getContext()).load(videoPaths.get(index).getImage()).into(videoImage);
+            videoImage.setVisibility(View.VISIBLE);
+//
             if (!StringUtils.isEmpty(videoPaths.get(index).getUrl())) {
                 HttpProxyCacheServer proxy = App.getProxy(App.getContext());
                 String proxyUrl = proxy.getProxyUrl(videoPaths.get(index).getUrl());
+                try {
+                    if(proxyUrl.toLowerCase().startsWith("file://")) {
+                        videoImage.setImageBitmap(getVideoOne(App.getContext(), proxyUrl));
+                    }
+                } catch (Exception e) {
+                    LogUtils.e(e.getMessage());
+                }
                 videoView.setVideoPath(proxyUrl);
                 videoView.start();
             } else {
@@ -193,9 +186,11 @@ public class AdPresentation extends Presentation {
      * @param sdPath
      * @return
      */
-    private Bitmap getVideoOne(String sdPath) {
+    private Bitmap getVideoOne(Context context, String sdPath) {
         MediaMetadataRetriever media = new MediaMetadataRetriever();
+        sdPath = sdPath.replace("file://", "");
         media.setDataSource(sdPath);// videoPath 本地视频的路径
-        return media.getFrameAtTime(1, MediaMetadataRetriever.OPTION_CLOSEST_SYNC);
+        return media.getFrameAtTime();
     }
+
 }

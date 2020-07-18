@@ -11,10 +11,11 @@ public class WxApi {
 
 
 
-    public static RxHttp getWxAuthInfo(String rawDate)
+    public static RxHttp getWxAuthInfo(String data)
     {
         RawData rawData =new RawData();
-        rawData.setRawdata(rawDate);
+        rawData.setRawdata(data);
+        rawData.setDevice_id(Utils.getDeviceSN());
         return new RxHttp.Builder().post("/Visual/GetWxPayFaceAuthinfo").json(rawData).build();
     }
 

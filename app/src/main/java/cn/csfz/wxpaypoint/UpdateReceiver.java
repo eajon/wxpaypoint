@@ -33,6 +33,6 @@ public class UpdateReceiver extends BroadcastReceiver {
         } else if (intent.getAction().equals("android.intent.action.BOOT_COMPLETED")) {
             Utils.restartAPP(context);
         }
-//        DaemonHolder.startService();
+        DaemonHolder.startService();
     }
 }

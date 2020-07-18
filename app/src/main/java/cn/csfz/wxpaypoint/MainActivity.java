@@ -82,6 +82,7 @@ public class MainActivity extends BaseActivity {
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
     @Override
     protected void initLogic() {
+        checkVersion();
         DaemonHolder.startService();
         getSecondDisplay();
         //for test secondDisplay
@@ -189,6 +190,13 @@ public class MainActivity extends BaseActivity {
                     WxPayFace.getInstance().getUserPayScoreStatus(map, new IWxPayfaceCallback() {
                         @Override
                         public void response(Map map) throws RemoteException {
+                            if (map.get("return_code").equals("USER_CANCEL")) {
+                                return;
+                            }
+                            if (map.get("return_code").equals("SCAN_PAYMENT")) {
+                                Toasty.normal(self, "暂未开通该流程").show();
+                                return;
+                            }
                             LogUtils.d(map.toString());
                             WxApi.createOrder((String) map.get("face_sid"), (String) map.get("openid"), response.getData().getOut_trade_no()).request(new SolveObserver<BaseEntity>(self) {
                                 @Override
@@ -232,7 +240,7 @@ public class MainActivity extends BaseActivity {
     }
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
-    @OnClick(R.id.open_iv)
+    @OnClick(R.id.button)
     public void onViewClicked() {
         WxPayFace.getInstance().getWxpayfaceRawdata(new IWxPayfaceCallback() {
             @Override

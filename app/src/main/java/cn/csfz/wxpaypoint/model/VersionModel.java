@@ -1,6 +1,8 @@
 package cn.csfz.wxpaypoint.model;
 
 
+import com.google.gson.annotations.SerializedName;
+
 import java.util.List;
 
 import lombok.Data;
