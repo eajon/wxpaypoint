@@ -1,19 +1,19 @@
 package cn.csfz.wxpaypoint.activity;
 
+import android.app.Activity;
 import android.os.Bundle;
 
 import java.util.concurrent.TimeUnit;
 
 import cn.csfz.wxpaypoint.R;
 import cn.csfz.wxpaypoint.base.BaseActivity;
+import cn.csfz.wxpaypoint.util.ActivityCollector;
 import io.reactivex.Observable;
 import io.reactivex.Observer;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
 
 public class CloseDoorActivity extends BaseActivity {
-
-
 
 
     @Override
@@ -44,6 +44,9 @@ public class CloseDoorActivity extends BaseActivity {
             @Override
             public void onNext(Long aLong) {
                 if (aLong > 5) {
+                    if (ActivityCollector.isActivityExist(OpenDoorActivity.class)) {
+                        ActivityCollector.getActivity(OpenDoorActivity.class).finish();
+                    }
                     CloseDoorActivity.this.finish();
                 }
             }

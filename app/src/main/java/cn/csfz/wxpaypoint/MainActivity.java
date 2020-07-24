@@ -1,5 +1,6 @@
 package cn.csfz.wxpaypoint;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -48,6 +49,7 @@ import cn.csfz.wxpaypoint.model.AuthInfo;
 import cn.csfz.wxpaypoint.model.BaseEntity;
 import cn.csfz.wxpaypoint.model.VersionModel;
 import cn.csfz.wxpaypoint.model.Video;
+import cn.csfz.wxpaypoint.util.ActivityCollector;
 import cn.csfz.wxpaypoint.util.Utils;
 import cn.eajon.tool.ActivityUtils;
 import cn.eajon.tool.LogUtils;
@@ -63,6 +65,8 @@ public class MainActivity extends BaseActivity {
     ImageView openIv;
 
     AdPresentation adPresentation;
+
+    int index;
 
     @Override
     protected boolean hasToolBar() {
@@ -109,12 +113,31 @@ public class MainActivity extends BaseActivity {
         HubConnection hubConnection = HubConnectionBuilder.create("http://websocket.vendor.cxwos.com/websocket/MachineHub?userId=" + sn + "&machineId=" + sn).withTransport(TransportEnum.LONG_POLLING).build();
         hubConnection.on("closeNotify", (message) -> {
             LogUtils.d(message);
-            runOnUiThread(() -> ActivityUtils.toActivity(self, CloseDoorActivity.class));
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (ActivityCollector.isActivityExist(OpenDoorActivity.class)) {
+                        ActivityCollector.getActivity(OpenDoorActivity.class).finish();
+                    }
+                    if (!ActivityCollector.isActivityExist(CloseDoorActivity.class)) {
+                        ActivityUtils.toActivity(self, CloseDoorActivity.class);
+                    }
+
+                }
+            });
 //            Toasty.normal(self, "关门了").show();
         }, String.class);
         hubConnection.on("openNotify", (message) -> {
             LogUtils.d(message);
-            runOnUiThread(() -> ActivityUtils.toActivity(self, OpenDoorActivity.class));
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (!ActivityCollector.isActivityExist(OpenDoorActivity.class)) {
+                        ActivityUtils.toActivity(self, OpenDoorActivity.class);
+                    }
+
+                }
+            });
 //            Toasty.normal(self, "开门了").show();
         }, String.class);
         hubConnection.on("updateNotify", (message) -> {
@@ -187,26 +210,52 @@ public class MainActivity extends BaseActivity {
                     map.put("authinfo", response.getData().getAuthinfo());
                     map.put("payscore_out_request_no", response.getData().getPayscore_out_request_no());
                     map.put("payscore_service_id", response.getData().getPayscore_service_id());
+                    Toasty.normal(self, "开始获取支付分").show();
+                    index = 0;
                     WxPayFace.getInstance().getUserPayScoreStatus(map, new IWxPayfaceCallback() {
                         @Override
                         public void response(Map map) throws RemoteException {
+                            index++;
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    Toasty.normal(self, "支付分返回第" + index + "次").show();
+                                }
+                            });
+                            if (map == null) {
+                                runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        Toasty.error(self, "支付分异常").show();
+                                    }
+                                });
+                                return;
+                            }
                             if (map.get("return_code").equals("USER_CANCEL")) {
                                 return;
                             }
                             if (map.get("return_code").equals("SCAN_PAYMENT")) {
-                                Toasty.normal(self, "暂未开通该流程").show();
+                                runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        Toasty.normal(self, "暂未开通该流程").show();
+                                    }
+                                });
                                 return;
                             }
-                            LogUtils.d(map.toString());
-                            WxApi.createOrder((String) map.get("face_sid"), (String) map.get("openid"), response.getData().getOut_trade_no()).request(new SolveObserver<BaseEntity>(self) {
-                                @Override
-                                public void onSolve(BaseEntity response) {
-                                    if (response.isSuccess()) {
-                                        Toasty.normal(self, "正在开门中,请稍后").show();
+                            if (map.containsKey("face_sid") && map.containsKey("openid")) {
+                                WxApi.createOrder((String) map.get("face_sid"), (String) map.get("openid"), response.getData().getOut_trade_no()).request(new SolveObserver<BaseEntity>(self) {
+                                    @Override
+                                    public void onSolve(BaseEntity response) {
+                                        if (response.isSuccess()) {
+                                            Toasty.normal(self, "正在开门中,请稍后").show();
+                                        }
                                     }
-                                }
 
-                            });
+                                });
+                            } else {
+                                Toasty.error(self, "系统错误").show();
+                            }
                         }
                     });
                 }

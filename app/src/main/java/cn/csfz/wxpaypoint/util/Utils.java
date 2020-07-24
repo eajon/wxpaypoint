@@ -1,9 +1,13 @@
 package cn.csfz.wxpaypoint.util;
 
+import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
 
 import cn.csfz.wxpaypoint.App;
+
+import static android.content.Context.ACTIVITY_SERVICE;
+import static androidx.core.content.ContextCompat.getSystemService;
 
 public class Utils {
 
