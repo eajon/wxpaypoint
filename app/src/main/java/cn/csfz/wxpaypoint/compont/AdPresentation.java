@@ -119,6 +119,7 @@ public class AdPresentation extends Presentation {
             SPUtils.putData("version", versionModel);
             this.videoPaths = versionModel.getVideos();
         }
+        index = 0;
         startVideos();
     }
 
@@ -129,12 +130,12 @@ public class AdPresentation extends Presentation {
     private void startVideos() {
         if (videoPaths.get(index).getType() == 0) {
             videoImage.setVisibility(View.VISIBLE);
-//
+            videoView.setVisibility(View.VISIBLE);
             if (!StringUtils.isEmpty(videoPaths.get(index).getUrl())) {
                 HttpProxyCacheServer proxy = App.getProxy(App.getContext());
                 String proxyUrl = proxy.getProxyUrl(videoPaths.get(index).getUrl());
                 try {
-                    if(proxyUrl.toLowerCase().startsWith("file://")) {
+                    if (proxyUrl.toLowerCase().startsWith("file://")) {
                         videoImage.setImageBitmap(getVideoOne(App.getContext(), proxyUrl));
                     }
                 } catch (Exception e) {
@@ -152,6 +153,7 @@ public class AdPresentation extends Presentation {
 
         } else {
             videoImage.setVisibility(View.VISIBLE);
+            videoView.setVisibility(View.GONE);
             Observable.timer(videoPaths.get(index).getDelay(), TimeUnit.SECONDS).compose(ObservableUtils.ioMain()).subscribe(new Observer<Long>() {
                 @Override
                 public void onSubscribe(Disposable d) {

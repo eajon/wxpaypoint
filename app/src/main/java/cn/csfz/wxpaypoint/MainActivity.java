@@ -109,9 +109,7 @@ public class MainActivity extends BaseActivity {
 //        updateAd(versionModel);
 
 
-        String sn = Utils.getDeviceSN();
-        HubConnection hubConnection = HubConnectionBuilder.create("http://websocket.vendor.cxwos.com/websocket/MachineHub?userId=" + sn + "&machineId=" + sn).withTransport(TransportEnum.LONG_POLLING).build();
-        hubConnection.on("closeNotify", (message) -> {
+        App.getHub().on("closeNotify", (message) -> {
             LogUtils.d(message);
             runOnUiThread(new Runnable() {
                 @Override
@@ -127,7 +125,7 @@ public class MainActivity extends BaseActivity {
             });
 //            Toasty.normal(self, "关门了").show();
         }, String.class);
-        hubConnection.on("openNotify", (message) -> {
+        App.getHub().on("openNotify", (message) -> {
             LogUtils.d(message);
             runOnUiThread(new Runnable() {
                 @Override
@@ -140,7 +138,7 @@ public class MainActivity extends BaseActivity {
             });
 //            Toasty.normal(self, "开门了").show();
         }, String.class);
-        hubConnection.on("updateNotify", (message) -> {
+        App.getHub().on("updateNotify", (message) -> {
 //            Toasty.normal(self, "自动更新开始").show();
             LogUtils.d(message);
             runOnUiThread(new Runnable() {
@@ -152,7 +150,7 @@ public class MainActivity extends BaseActivity {
             });
 
         }, String.class);
-        hubConnection.on("updateAd", (message) -> {
+        App.getHub().on("updateAd", (message) -> {
 //            Toasty.normal(self, "自动更新开始").show();
             LogUtils.d(message);
             runOnUiThread(new Runnable() {
@@ -164,20 +162,15 @@ public class MainActivity extends BaseActivity {
             });
 
         }, String.class);
-
-
-        Observable.interval(0, 10, TimeUnit.SECONDS).doOnNext(new Consumer<Long>() {
-            @Override
-            public void accept(Long integer) throws Exception {
-                if (hubConnection.getConnectionState() == HubConnectionState.DISCONNECTED) {
-                    try {
-                        hubConnection.start().blockingAwait(5, TimeUnit.SECONDS);
-                    } catch (Exception e) {
-                        LogUtils.e(e.getMessage());
-                    }
+        if (App.getHub().getConnectionState() == HubConnectionState.DISCONNECTED) {
+            try {
+                App.getHub().start().blockingAwait();
+            } catch (Exception e) {
+                if (null != e.getMessage()) {
+                    LogUtils.e(e.getMessage());
                 }
             }
-        }).compose(ObservableUtils.ioMain()).subscribe();
+        }
     }
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
@@ -210,18 +203,18 @@ public class MainActivity extends BaseActivity {
                     map.put("authinfo", response.getData().getAuthinfo());
                     map.put("payscore_out_request_no", response.getData().getPayscore_out_request_no());
                     map.put("payscore_service_id", response.getData().getPayscore_service_id());
-                    Toasty.normal(self, "开始获取支付分").show();
+//                    Toasty.normal(self, "开始获取支付分").show();
                     index = 0;
                     WxPayFace.getInstance().getUserPayScoreStatus(map, new IWxPayfaceCallback() {
                         @Override
                         public void response(Map map) throws RemoteException {
                             index++;
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    Toasty.normal(self, "支付分返回第" + index + "次").show();
-                                }
-                            });
+//                            runOnUiThread(new Runnable() {
+//                                @Override
+//                                public void run() {
+//                                    Toasty.normal(self, "支付分返回第" + index + "次").show();
+//                                }
+//                            });
                             if (map == null) {
                                 runOnUiThread(new Runnable() {
                                     @Override
@@ -248,7 +241,9 @@ public class MainActivity extends BaseActivity {
                                     @Override
                                     public void onSolve(BaseEntity response) {
                                         if (response.isSuccess()) {
-                                            Toasty.normal(self, "正在开门中,请稍后").show();
+                                            if (!ActivityCollector.isActivityExist(OpenDoorActivity.class)) {
+                                                ActivityUtils.toActivity(self, OpenDoorActivity.class);
+                                            }
                                         }
                                     }
 

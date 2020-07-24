@@ -13,5 +13,6 @@
         android:id="@+id/video_image"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:src="@mipmap/no_video"/>
+        android:src="@mipmap/no_video"
+        android:scaleType="fitXY"/>
 </RelativeLayout>

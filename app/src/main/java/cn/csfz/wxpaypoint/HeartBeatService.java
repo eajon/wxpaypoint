@@ -8,14 +8,20 @@ import android.os.Build;
 import android.os.Looper;
 import android.util.Log;
 
+import com.microsoft.signalr.HubConnectionState;
 import com.sunfusheng.daemon.AbsHeartBeatService;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import cn.csfz.wxpaypoint.activity.CloseDoorActivity;
 import cn.csfz.wxpaypoint.activity.OpenDoorActivity;
 import cn.csfz.wxpaypoint.util.ActivityCollector;
 import cn.eajon.tool.ActivityUtils;
+import cn.eajon.tool.LogUtils;
+import cn.eajon.tool.ObservableUtils;
+import io.reactivex.Observable;
+import io.reactivex.functions.Consumer;
 
 /**
  * @author sunfusheng on 2018/8/3.
@@ -47,17 +53,20 @@ public class HeartBeatService extends AbsHeartBeatService {
     @Override
     public void onHeartBeat() {
 
+        if (App.getHub().getConnectionState() == HubConnectionState.DISCONNECTED) {
+            try {
+                App.getHub().start().blockingAwait();
+            } catch (Exception e) {
+                if (null != e.getMessage()) {
+                    LogUtils.e(e.getMessage());
+                }
+            }
+        }
         Log.d(TAG, "onHeartBeat()");
-        if(!ActivityCollector.isActivityExist(MainActivity.class))
-        {
+        if (!ActivityCollector.isActivityExist(MainActivity.class)) {
             Intent i = new Intent(this, MainActivity.class);
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(i);
-        }else {
-            if(!(ActivityCollector.isActivityExist(CloseDoorActivity.class)||ActivityCollector.isActivityExist(OpenDoorActivity.class)))
-            {
-                moveToFront();
-            }
         }
     }
 
@@ -79,9 +88,9 @@ public class HeartBeatService extends AbsHeartBeatService {
         // honeycomb
         ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
         List<ActivityManager.RunningTaskInfo> recentTasks = manager.getRunningTasks(Integer.MAX_VALUE);
-        for (int i = 0; i < recentTasks.size(); i++){
-            Log.e("xk", "  "+recentTasks.get(i).baseActivity.toShortString() + "   ID: "+recentTasks.get(i).id+"");
-            Log.e("xk","@@@@  "+recentTasks.get(i).baseActivity.toShortString());
+        for (int i = 0; i < recentTasks.size(); i++) {
+            Log.e("xk", "  " + recentTasks.get(i).baseActivity.toShortString() + "   ID: " + recentTasks.get(i).id + "");
+            Log.e("xk", "@@@@  " + recentTasks.get(i).baseActivity.toShortString());
             // bring to front
             if (recentTasks.get(i).baseActivity.toShortString().indexOf("cn.csfz.wxpaypoint.MainActivity") > -1) {
                 manager.moveTaskToFront(recentTasks.get(i).id, ActivityManager.MOVE_TASK_WITH_HOME);

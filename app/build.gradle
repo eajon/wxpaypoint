@@ -13,8 +13,8 @@ android {
         applicationId "cn.csfz.paypoint"
         minSdkVersion 16
         targetSdkVersion 26
-        versionCode 3
-        versionName "1.0.2"
+        versionCode 8
+        versionName "1.0.8"
         multiDexEnabled true
         javaCompileOptions {
             annotationProcessorOptions {

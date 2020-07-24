@@ -27,7 +27,19 @@ public class Utils {
     public static void restartAPP(Context context){
         Intent intent = context.getPackageManager()
                 .getLaunchIntentForPackage(App.getContext().getPackageName());
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_NEW_TASK);
+        context.startActivity(intent);
+    }
+
+
+    /**
+     * 启动整个APP
+     * @param context
+     */
+    public static void startApp(Context context){
+        Intent intent = context.getPackageManager()
+                .getLaunchIntentForPackage(App.getContext().getPackageName());
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         context.startActivity(intent);
     }
 
