@@ -8,6 +8,7 @@ import android.os.Build;
 import android.os.Looper;
 import android.util.Log;
 
+import com.google.gson.Gson;
 import com.microsoft.signalr.HubConnectionState;
 import com.sunfusheng.daemon.AbsHeartBeatService;
 
@@ -16,6 +17,7 @@ import java.util.concurrent.TimeUnit;
 
 import cn.csfz.wxpaypoint.activity.CloseDoorActivity;
 import cn.csfz.wxpaypoint.activity.OpenDoorActivity;
+import cn.csfz.wxpaypoint.model.VersionModel;
 import cn.csfz.wxpaypoint.util.ActivityCollector;
 import cn.eajon.tool.ActivityUtils;
 import cn.eajon.tool.LogUtils;
@@ -52,17 +54,10 @@ public class HeartBeatService extends AbsHeartBeatService {
 
     @Override
     public void onHeartBeat() {
-
-        if (App.getHub().getConnectionState() == HubConnectionState.DISCONNECTED) {
-            try {
-                App.getHub().start().blockingAwait();
-            } catch (Exception e) {
-                if (null != e.getMessage()) {
-                    LogUtils.e(e.getMessage());
-                }
-            }
-        }
         Log.d(TAG, "onHeartBeat()");
+        Log.d(TAG,App.getHub().getConnectionState().name());
+        startHub();
+
         if (!ActivityCollector.isActivityExist(MainActivity.class)) {
             Intent i = new Intent(this, MainActivity.class);
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -94,6 +89,49 @@ public class HeartBeatService extends AbsHeartBeatService {
             // bring to front
             if (recentTasks.get(i).baseActivity.toShortString().indexOf("cn.csfz.wxpaypoint.MainActivity") > -1) {
                 manager.moveTaskToFront(recentTasks.get(i).id, ActivityManager.MOVE_TASK_WITH_HOME);
+            }
+        }
+    }
+
+    private void startHub()
+    {
+        if (App.getHub().getConnectionState() == HubConnectionState.DISCONNECTED) {
+            App.getHub().on("closeNotify", (message) -> {
+                LogUtils.d(message);
+                Intent intent = new Intent();
+                intent.setAction("closeNotify");
+                sendBroadcast(intent);
+            }, String.class);
+            App.getHub().on("connected", (message) -> {
+                LogUtils.d(message);
+            }, String.class);
+            App.getHub().on("openNotify", (message) -> {
+                LogUtils.d(message);
+                Intent intent = new Intent();
+                intent.setAction("openNotify");
+                sendBroadcast(intent);
+            }, String.class);
+            App.getHub().on("updateNotify", (message) -> {
+                LogUtils.e(message);
+                Intent intent = new Intent();
+                intent.setAction("updateNotify");
+                intent.putExtra("message",message);
+                sendBroadcast(intent);
+            }, String.class);
+            App.getHub().on("updateAd", (message) -> {
+                LogUtils.d(message);
+                Intent intent = new Intent();
+                intent.setAction("updateAd");
+                intent.putExtra("message",message);
+                sendBroadcast(intent);
+            }, String.class);
+            try {
+                App.getHub().start().blockingAwait();
+                Log.d(TAG,"已连接上");
+            } catch (Exception e) {
+                if (null != e.getMessage()) {
+                    LogUtils.e(e.getMessage());
+                }
             }
         }
     }

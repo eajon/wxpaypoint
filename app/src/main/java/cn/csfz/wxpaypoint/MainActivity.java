@@ -1,39 +1,32 @@
 package cn.csfz.wxpaypoint;
 
-import android.app.Activity;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.hardware.display.DisplayManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.RemoteException;
+import android.util.Log;
 import android.view.Display;
 import android.view.WindowManager;
 import android.widget.ImageView;
 
 import androidx.annotation.RequiresApi;
 
-import com.github.eajon.RxHttp;
 import com.github.eajon.exception.ApiException;
-import com.github.eajon.observer.DownloadObserver;
 import com.github.eajon.observer.HttpObserver;
-import com.github.eajon.task.DownloadTask;
 import com.google.gson.Gson;
-import com.microsoft.signalr.HubConnection;
-import com.microsoft.signalr.HubConnectionBuilder;
 import com.microsoft.signalr.HubConnectionState;
-import com.microsoft.signalr.TransportEnum;
 import com.sunfusheng.daemon.DaemonHolder;
 import com.tencent.wxpayface.IWxPayfaceCallback;
 import com.tencent.wxpayface.WxPayFace;
 
-import java.io.File;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -48,16 +41,11 @@ import cn.csfz.wxpaypoint.compont.SolveObserver;
 import cn.csfz.wxpaypoint.model.AuthInfo;
 import cn.csfz.wxpaypoint.model.BaseEntity;
 import cn.csfz.wxpaypoint.model.VersionModel;
-import cn.csfz.wxpaypoint.model.Video;
 import cn.csfz.wxpaypoint.util.ActivityCollector;
-import cn.csfz.wxpaypoint.util.Utils;
+import cn.csfz.wxpaypoint.widget.QrCodeDialog;
 import cn.eajon.tool.ActivityUtils;
 import cn.eajon.tool.LogUtils;
-import cn.eajon.tool.ObservableUtils;
-import cn.eajon.tool.SPUtils;
 import es.dmoral.toasty.Toasty;
-import io.reactivex.Observable;
-import io.reactivex.functions.Consumer;
 import top.wuhaojie.installerlibrary.AutoInstaller;
 
 public class MainActivity extends BaseActivity {
@@ -66,7 +54,10 @@ public class MainActivity extends BaseActivity {
 
     AdPresentation adPresentation;
 
+
+    QrCodeDialog qrCodeDialog ;
     int index;
+    HubReceiver hubReceiver;
 
     @Override
     protected boolean hasToolBar() {
@@ -80,7 +71,13 @@ public class MainActivity extends BaseActivity {
 
     @Override
     protected void init(Bundle savedInstanceState) {
-//        checkVersion();
+         hubReceiver = new HubReceiver();
+        IntentFilter filter = new IntentFilter();
+        filter.addAction("openNotify");
+        filter.addAction("closeNotify");
+        filter.addAction("updateNotify");
+        filter.addAction("updateAd");
+        registerReceiver(hubReceiver, filter);
     }
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
@@ -89,88 +86,8 @@ public class MainActivity extends BaseActivity {
         checkVersion();
         DaemonHolder.startService();
         getSecondDisplay();
-        //for test secondDisplay
-//        List<Video> videoPaths = new ArrayList<>();
-//        Video video = new Video();
-//        video.setDelay(10);
-//        video.setType(1);
-//        video.setImage("https://qmoss.blob.core.chinacloudapi.cn/ads/0262203af97d0be0843e69a5134b6fff.jpg");
-//        video.setUrl("https://qmoss.blob.core.chinacloudapi.cn/ads/23ecd9d8ee137dbebd5a87e43c64432e.mp4");
-//        videoPaths.add(video);
-//        video = new Video();
-//        video.setDelay(10);
-//        video.setType(0);
-//        video.setImage("https://qmoss.blob.core.chinacloudapi.cn/ads/8241f1f02a86902f37d6f2710d81965c.jpg");
-//        video.setUrl("https://qmoss.blob.core.chinacloudapi.cn/ads/8241f1f02a86902f37d6f2710d81965c.mp4");
-//        videoPaths.add(video);
-//        VersionModel versionModel = new VersionModel();
-//        versionModel.setAdVersion(5);
-//        versionModel.setVideos(videoPaths);
-//        updateAd(versionModel);
+        qrCodeDialog =new QrCodeDialog(self);
 
-
-        App.getHub().on("closeNotify", (message) -> {
-            LogUtils.d(message);
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    if (ActivityCollector.isActivityExist(OpenDoorActivity.class)) {
-                        ActivityCollector.getActivity(OpenDoorActivity.class).finish();
-                    }
-                    if (!ActivityCollector.isActivityExist(CloseDoorActivity.class)) {
-                        ActivityUtils.toActivity(self, CloseDoorActivity.class);
-                    }
-
-                }
-            });
-//            Toasty.normal(self, "关门了").show();
-        }, String.class);
-        App.getHub().on("openNotify", (message) -> {
-            LogUtils.d(message);
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    if (!ActivityCollector.isActivityExist(OpenDoorActivity.class)) {
-                        ActivityUtils.toActivity(self, OpenDoorActivity.class);
-                    }
-
-                }
-            });
-//            Toasty.normal(self, "开门了").show();
-        }, String.class);
-        App.getHub().on("updateNotify", (message) -> {
-//            Toasty.normal(self, "自动更新开始").show();
-            LogUtils.d(message);
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    VersionModel versionModel = new Gson().fromJson(message, VersionModel.class);
-                    updateApk(versionModel);
-                }
-            });
-
-        }, String.class);
-        App.getHub().on("updateAd", (message) -> {
-//            Toasty.normal(self, "自动更新开始").show();
-            LogUtils.d(message);
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    VersionModel versionModel = new Gson().fromJson(message, VersionModel.class);
-                    updateAd(versionModel);
-                }
-            });
-
-        }, String.class);
-        if (App.getHub().getConnectionState() == HubConnectionState.DISCONNECTED) {
-            try {
-                App.getHub().start().blockingAwait();
-            } catch (Exception e) {
-                if (null != e.getMessage()) {
-                    LogUtils.e(e.getMessage());
-                }
-            }
-        }
     }
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
@@ -182,10 +99,12 @@ public class MainActivity extends BaseActivity {
 //        int height =displays[displays.length - 1].getHeight();
         // displays[0] 主屏
         // displays[1] 副屏
-        adPresentation = new AdPresentation(App.getContext(), displays[displays.length - 1]);
+        adPresentation = new AdPresentation(MainActivity.this, displays[displays.length - 1]);
         adPresentation.getWindow().setType(
                 WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
-        adPresentation.show();
+        if(!adPresentation.isShowing()) {
+            adPresentation.show();
+        }
 
 
     }
@@ -286,18 +205,25 @@ public class MainActivity extends BaseActivity {
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
     @OnClick(R.id.button)
     public void onViewClicked() {
-        WxPayFace.getInstance().getWxpayfaceRawdata(new IWxPayfaceCallback() {
-            @Override
-            public void response(final Map info) throws RemoteException {
-                if (info == null) {
-                    new RuntimeException("调用返回为空").printStackTrace();
-                    return;
-                } else {
-                    String rawdata = (String) info.get("rawdata");
-                    getWxAuthInfo(rawdata);
-                }
-            }
-        });
+        App.resetHub();
+        Log.d("MainActivity",App.getHub().getConnectionState().name());
+
+        if(qrCodeDialog!=null&&!qrCodeDialog.isShowing()) {
+            qrCodeDialog.show();
+        }
+
+//        WxPayFace.getInstance().getWxpayfaceRawdata(new IWxPayfaceCallback() {
+//            @Override
+//            public void response(final Map info) throws RemoteException {
+//                if (info == null) {
+//                    new RuntimeException("调用返回为空").printStackTrace();
+//                    return;
+//                } else {
+//                    String rawdata = (String) info.get("rawdata");
+//                    getWxAuthInfo(rawdata);
+//                }
+//            }
+//        });
     }
 
 
@@ -327,5 +253,73 @@ public class MainActivity extends BaseActivity {
             e.printStackTrace();
         }
         return versionCode;
+    }
+
+    private void openDoor()
+    {
+        if (!ActivityCollector.isActivityExist(OpenDoorActivity.class)) {
+            ActivityUtils.toActivity(self, OpenDoorActivity.class);
+        }
+    }
+
+    private void closeDoor()
+    {
+        if (ActivityCollector.isActivityExist(OpenDoorActivity.class)) {
+            ActivityCollector.getActivity(OpenDoorActivity.class).finish();
+        }
+        if (!ActivityCollector.isActivityExist(CloseDoorActivity.class)) {
+            ActivityUtils.toActivity(self, CloseDoorActivity.class);
+        }
+    }
+
+    private void updateNotify(String message)
+    {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toasty.normal(self,"开始更新").show();
+            }
+        });
+        VersionModel versionModel = new Gson().fromJson(message, VersionModel.class);
+        updateApk(versionModel);
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
+    private void updateAd(String message)
+    {
+        VersionModel versionModel = new Gson().fromJson(message, VersionModel.class);
+        adPresentation.updateVideos(versionModel);
+    }
+
+    public class HubReceiver extends BroadcastReceiver {
+        //必须要重载的方法，用来监听是否有广播发送
+        @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String intentAction = intent.getAction();
+            if (intentAction.equals("openNotify")) {
+                     openDoor();
+            }else if(intentAction.equals("closeNotify"))
+            {
+                closeDoor();
+
+            }else if(intentAction.equals("updateNotify"))
+            {
+                String message =intent.getStringExtra("message");
+                updateNotify(message);
+            }else if(intentAction.equals("updateAd"))
+            {
+                String message =intent.getStringExtra("message");
+                updateAd(message);
+            }
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        adPresentation.dismiss();
+        adPresentation =null;
+        unregisterReceiver(hubReceiver);
+        super.onDestroy();
     }
 }

@@ -107,12 +107,19 @@ public class App extends Application implements Thread.UncaughtExceptionHandler 
             synchronized (App.class) {
                 if (hubConnection == null) {
                     String sn = Utils.getDeviceSN();
-                    hubConnection = HubConnectionBuilder.create("http://websocket.vendor.cxwos.com/websocket/MachineHub?userId=" + sn + "&machineId=" + sn).withTransport(TransportEnum.LONG_POLLING).build();
+                    hubConnection = HubConnectionBuilder.create("http://websocket.vendor.cxwos.com/websocket/MachineHub?userId=" + sn + "&machineId=" + sn).build();
+
                 }
             }
         }
         return hubConnection;
     }
+
+    public static void resetHub(){
+        hubConnection.stop();
+        hubConnection =null;
+    }
+
 
     private HttpProxyCacheServer newProxy() {
         return new HttpProxyCacheServer.Builder(self)

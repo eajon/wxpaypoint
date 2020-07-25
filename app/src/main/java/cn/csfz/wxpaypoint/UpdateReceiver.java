@@ -19,6 +19,8 @@ public class UpdateReceiver extends BroadcastReceiver {
         if (intent.getAction().equals(Intent.ACTION_PACKAGE_REPLACED)) {//接收升级广播
             LogUtils.e("onReceive:升级了一个安装包，重新启动此程序");
             if (packageName.equals("package:" + App.getContext().getPackageName())) {
+                App.resetHub();
+                DaemonHolder.stopService();
                 Utils.restartAPP(context);//升级完自身app,重启自身
                 System.exit(0);
             }

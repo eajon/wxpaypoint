@@ -1,10 +1,14 @@
 package cn.csfz.wxpaypoint.activity;
 
 import android.app.Activity;
+import android.os.Build;
 import android.os.Bundle;
+
+import androidx.annotation.RequiresApi;
 
 import java.util.concurrent.TimeUnit;
 
+import butterknife.OnClick;
 import cn.csfz.wxpaypoint.R;
 import cn.csfz.wxpaypoint.base.BaseActivity;
 import cn.csfz.wxpaypoint.util.ActivityCollector;
@@ -69,5 +73,11 @@ public class CloseDoorActivity extends BaseActivity {
         if (disposable != null && !disposable.isDisposed()) {
             disposable.dispose();
         }
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
+    @OnClick(R.id.back_btn)
+    public void onViewClicked() {
+       self.finish();
     }
 }

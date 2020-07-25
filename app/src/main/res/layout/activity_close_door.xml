@@ -27,6 +27,7 @@
         android:textSize="20dp" />
 
     <Button
+        android:id="@+id/back_btn"
         android:layout_width="match_parent"
         android:layout_height="60dp"
         android:layout_below="@+id/text_view"
