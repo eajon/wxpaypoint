@@ -28,6 +28,7 @@ dependencies {
     implementation 'com.github.a-voyager:AutoInstaller:v1.0'
     implementation 'com.microsoft.signalr:signalr:3.0.0'
     implementation 'com.danikula:videocache:2.7.1'
+
 //    implementation (name: 'wxfacepay-release-2.14.800.n9anaw7e', ext: 'aar')
 
 

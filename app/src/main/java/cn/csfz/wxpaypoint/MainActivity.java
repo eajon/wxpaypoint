@@ -299,6 +299,9 @@ public class MainActivity extends BaseActivity {
         @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
         @Override
         public void onReceive(Context context, Intent intent) {
+            if (qrCodeDialog != null && qrCodeDialog.isShowing()) {
+                qrCodeDialog.dismiss();
+            }
             String intentAction = intent.getAction();
             if (intentAction.equals("openNotify")) {
                 openDoor();
