@@ -110,9 +110,9 @@ public class MainActivity extends BaseActivity {
 
     private void getWxAuthInfo(String rawdata) {
 
-        WxApi.getWxAuthInfo(rawdata).request(new HttpObserver<BaseEntity<AuthInfo>>() {
+        WxApi.getWxAuthInfo(rawdata).request(new SolveObserver<BaseEntity<AuthInfo>>(self) {
             @Override
-            public void onSuccess(BaseEntity<AuthInfo> response) {
+            public void onSolve(BaseEntity<AuthInfo> response) {
                 if (response.isSuccess()) {
                     Map<String, String> map = new HashMap<>();
                     map.put("appid", response.getData().getAppid());
@@ -182,11 +182,6 @@ public class MainActivity extends BaseActivity {
                     });
                 }
             }
-
-            @Override
-            public void onError(ApiException exception) {
-
-            }
         });
 
     }
@@ -224,7 +219,7 @@ public class MainActivity extends BaseActivity {
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            Toasty.error(self, "人脸初始化失败，请检查设备完整性").show();
+                            Toasty.error(self, "人脸识别初始化失败，请检查设备完整性").show();
                         }
                     });
                     return;
