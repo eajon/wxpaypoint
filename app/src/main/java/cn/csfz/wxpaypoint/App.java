@@ -1,40 +1,62 @@
 package cn.csfz.wxpaypoint;
 
 import android.app.Application;
+import android.app.job.JobInfo;
+import android.app.job.JobScheduler;
+import android.content.ComponentName;
+import android.content.Context;
+import android.os.Build;
+import android.os.RemoteException;
 
+import androidx.annotation.RequiresApi;
+
+import com.danikula.videocache.HttpProxyCacheServer;
+import com.github.eajon.RxConfig;
 import com.github.eajon.RxHttp;
 import com.github.eajon.util.LoggerUtils;
+import com.google.gson.Gson;
 import com.microsoft.signalr.HubConnection;
 import com.microsoft.signalr.HubConnectionBuilder;
 import com.microsoft.signalr.HubConnectionState;
 import com.microsoft.signalr.TransportEnum;
+import com.sunfusheng.daemon.DaemonHolder;
+import com.tencent.wxpayface.IWxPayfaceCallback;
+import com.tencent.wxpayface.WxPayFace;
 import com.umeng.commonsdk.UMConfigure;
 
 import java.io.File;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import cn.csfz.wxpaypoint.activity.CloseDoorActivity;
+import cn.csfz.wxpaypoint.activity.OpenDoorActivity;
+import cn.csfz.wxpaypoint.model.VersionModel;
+import cn.csfz.wxpaypoint.util.ActivityCollector;
+import cn.csfz.wxpaypoint.util.Utils;
+import cn.eajon.tool.ActivityUtils;
+import cn.eajon.tool.AppUtils;
+import cn.eajon.tool.DeviceUtils;
 import cn.eajon.tool.LogUtils;
 import cn.eajon.tool.ObservableUtils;
-import io.reactivex.Completable;
-import io.reactivex.CompletableEmitter;
-import io.reactivex.CompletableOnSubscribe;
+import es.dmoral.toasty.Toasty;
 import io.reactivex.Observable;
-import io.reactivex.ObservableEmitter;
-import io.reactivex.ObservableOnSubscribe;
-import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.functions.Consumer;
-import io.reactivex.functions.Predicate;
-import io.reactivex.schedulers.Schedulers;
 import okhttp3.OkHttpClient;
 import okhttp3.logging.HttpLoggingInterceptor;
 import top.wuhaojie.installerlibrary.AutoInstaller;
 
-public class App extends Application {
+public class App extends Application implements Thread.UncaughtExceptionHandler {
 
+    public static HubConnection hubConnection;
+    private static Application self;
+
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Override
     public void onCreate() {
         super.onCreate();
-        UMConfigure.init(App.this, "5ddb92b3570df3af0a0002de", "csfz", UMConfigure.DEVICE_TYPE_PHONE, null);
+        self = this;
+        Thread.setDefaultUncaughtExceptionHandler(this);
+        UMConfigure.init(App.this, "5f1a8825d62dd10bc71bda16", "csfz", UMConfigure.DEVICE_TYPE_PHONE, null);
         OkHttpClient.Builder httpClient = new OkHttpClient.Builder()
                 .addNetworkInterceptor(new HttpLoggingInterceptor(new HttpLoggingInterceptor.Logger() {
                     @Override
@@ -51,41 +73,65 @@ public class App extends Application {
                 .baseUrl(BuildConfig.SERVER_URL)
                 .okHttpClient(httpClient)
                 .rxCache(new File(getExternalCacheDir(), "load"))
-                .log(true, "load");
+                .log(!BuildConfig.PROD, "load");
+        WxPayFace.getInstance().initWxpayface(this, new IWxPayfaceCallback() {
 
-        HubConnection hubConnection = HubConnectionBuilder.create("http://websocket.vendor.cxwos.com/websocket/MachineHub?userId=0001&machineId=0001").withTransport(TransportEnum.LONG_POLLING).build();
-        hubConnection.on("closeNotify", (message) -> {
-            LogUtils.d(message);
-        }, String.class);
-        hubConnection.on("openNotify", (message) -> {
-            LogUtils.d(message);
-        }, String.class);
-        hubConnection.on("updateNotify", (message) -> {
-            AutoInstaller installer = new AutoInstaller.Builder(this)
-                    .setMode(AutoInstaller.MODE.ROOT_ONLY)
-                    .build();
-            installer.installFromUrl(message);
-        }, String.class);
-//        Completable.create(emitter -> {
-//            hubConnection.start().blockingAwait(10, TimeUnit.SECONDS);
-//            emitter.onComplete();
-//        }).subscribeOn(Schedulers.io())
-//                .unsubscribeOn(Schedulers.io())
-//                .observeOn(AndroidSchedulers.mainThread()).subscribe();
-
-        Observable.interval(0, 10, TimeUnit.SECONDS).doOnNext(new Consumer<Long>() {
             @Override
-            public void accept(Long integer) throws Exception {
-                if (hubConnection.getConnectionState() == HubConnectionState.DISCONNECTED) {
-                    try {
-                        hubConnection.start().blockingAwait(5, TimeUnit.SECONDS);
-                    } catch (Exception e) {
-
-                    }
-                }
+            public void response(Map map) throws RemoteException {
+                LogUtils.d(map.toString());
             }
-        }).compose(ObservableUtils.ioMain()).subscribe();
+        });
+        DaemonHolder.init(this, HeartBeatService.class);
+
 
 
     }
+
+    public static Application getContext() {
+        if (self != null) {
+            return self;
+        }
+        return null;
+    }
+
+    private HttpProxyCacheServer proxy;
+
+    public static HttpProxyCacheServer getProxy(Context context) {
+        App app = (App) context.getApplicationContext();
+        return app.proxy == null ? (app.proxy = app.newProxy()) : app.proxy;
+    }
+
+    public static HubConnection getHub() {
+        if(hubConnection ==null)
+        {
+            synchronized (App.class) {
+                if (hubConnection == null) {
+                    String sn = Utils.getDeviceSN();
+                    hubConnection = HubConnectionBuilder.create("http://websocket.vendor.cxwos.com/websocket/MachineHub?userId=" + sn + "&machineId=" + sn).build();
+
+                }
+            }
+        }
+        return hubConnection;
+    }
+
+    public static void resetHub(){
+        hubConnection.stop();
+        hubConnection =null;
+    }
+
+
+    private HttpProxyCacheServer newProxy() {
+        return new HttpProxyCacheServer.Builder(self)
+                .maxCacheSize(1024 * 1024 * 1024)       // 1 Gb for cache
+                .build();
+    }
+
+    @Override
+    public void uncaughtException(Thread thread, Throwable ex) {
+        Utils.restartAPP(self);
+        System.exit(0);
+    }
+
+
 }

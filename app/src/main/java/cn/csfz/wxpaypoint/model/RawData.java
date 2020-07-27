@@ -1,14 +1,11 @@
 package cn.csfz.wxpaypoint.model;
 
+
+import lombok.Data;
+
+@Data
 public class RawData {
 
     private String rawdata;
-
-    public String getRawdata() {
-        return rawdata;
-    }
-
-    public void setRawdata(String rawdata) {
-        this.rawdata = rawdata;
-    }
+    private String device_id;
 }
