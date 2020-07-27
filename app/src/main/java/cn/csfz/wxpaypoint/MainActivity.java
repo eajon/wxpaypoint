@@ -221,7 +221,12 @@ public class MainActivity extends BaseActivity {
             @Override
             public void response(final Map info) throws RemoteException {
                 if (info == null) {
-                    new RuntimeException("调用返回为空").printStackTrace();
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toasty.error(self, "人脸初始化失败，请检查设备完整性").show();
+                        }
+                    });
                     return;
                 } else {
                     String rawdata = (String) info.get("rawdata");
