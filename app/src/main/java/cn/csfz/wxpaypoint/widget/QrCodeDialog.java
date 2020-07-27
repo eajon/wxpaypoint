@@ -16,7 +16,7 @@ import cn.csfz.wxpaypoint.util.Utils;
 public class QrCodeDialog extends Dialog {
 
     private Context mContext;
-    private String url = "http://alipay.vendor.cxwos.com/?machineCode=";
+    private String url = "https://alipay.vendor.cxwos.com/?machineCode=";
 
     public QrCodeDialog(Context context, boolean cancelable, OnCancelListener cancelListener) {
         super(context, cancelable, cancelListener);
@@ -54,7 +54,7 @@ public class QrCodeDialog extends Dialog {
 //		DisplayMetrics  dm = new DisplayMetrics();
 //		WindowManager wm = (WindowManager) getContext().getSystemService(Context.WINDOW_SERVICE);
 //		wm.getDefaultDisplay().getMetrics(dm);
-        lp.width = dpToPx(this.getContext(), 200);
+        lp.width = dpToPx(this.getContext(), 280);
         dialogWindow.setAttributes(lp);
         setCanceledOnTouchOutside(true);
     }

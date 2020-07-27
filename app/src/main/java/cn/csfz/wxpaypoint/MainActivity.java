@@ -40,6 +40,7 @@ import cn.csfz.wxpaypoint.compont.AdPresentation;
 import cn.csfz.wxpaypoint.compont.SolveObserver;
 import cn.csfz.wxpaypoint.model.AuthInfo;
 import cn.csfz.wxpaypoint.model.BaseEntity;
+import cn.csfz.wxpaypoint.model.Order;
 import cn.csfz.wxpaypoint.model.VersionModel;
 import cn.csfz.wxpaypoint.util.ActivityCollector;
 import cn.csfz.wxpaypoint.widget.QrCodeDialog;
@@ -55,7 +56,7 @@ public class MainActivity extends BaseActivity {
     AdPresentation adPresentation;
 
 
-    QrCodeDialog qrCodeDialog ;
+    QrCodeDialog qrCodeDialog;
     int index;
     HubReceiver hubReceiver;
 
@@ -71,7 +72,7 @@ public class MainActivity extends BaseActivity {
 
     @Override
     protected void init(Bundle savedInstanceState) {
-         hubReceiver = new HubReceiver();
+        hubReceiver = new HubReceiver();
         IntentFilter filter = new IntentFilter();
         filter.addAction("openNotify");
         filter.addAction("closeNotify");
@@ -86,7 +87,7 @@ public class MainActivity extends BaseActivity {
         checkVersion();
         DaemonHolder.startService();
         getSecondDisplay();
-        qrCodeDialog =new QrCodeDialog(self);
+        qrCodeDialog = new QrCodeDialog(self);
 
     }
 
@@ -95,15 +96,13 @@ public class MainActivity extends BaseActivity {
 
         DisplayManager manager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
         Display[] displays = manager.getDisplays();
-//        int width =displays[displays.length - 1].getWidth();
-//        int height =displays[displays.length - 1].getHeight();
-        // displays[0] 主屏
-        // displays[1] 副屏
-        adPresentation = new AdPresentation(MainActivity.this, displays[displays.length - 1]);
-        adPresentation.getWindow().setType(
-                WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
-        if(!adPresentation.isShowing()) {
-            adPresentation.show();
+        if (displays.length > 1) {
+            adPresentation = new AdPresentation(MainActivity.this, displays[displays.length - 1]);
+            adPresentation.getWindow().setType(
+                    WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
+            if (!adPresentation.isShowing()) {
+                adPresentation.show();
+            }
         }
 
 
@@ -150,18 +149,27 @@ public class MainActivity extends BaseActivity {
                                 runOnUiThread(new Runnable() {
                                     @Override
                                     public void run() {
-                                        Toasty.normal(self, "暂未开通该流程").show();
+                                        if (qrCodeDialog != null && !qrCodeDialog.isShowing()) {
+                                            qrCodeDialog.show();
+                                        }
                                     }
                                 });
                                 return;
                             }
                             if (map.containsKey("face_sid") && map.containsKey("openid")) {
-                                WxApi.createOrder((String) map.get("face_sid"), (String) map.get("openid"), response.getData().getOut_trade_no()).request(new SolveObserver<BaseEntity>(self) {
+                                WxApi.createOrder((String) map.get("face_sid"), (String) map.get("openid"), response.getData().getOut_trade_no()).request(new SolveObserver<BaseEntity<Order>>(self) {
                                     @Override
-                                    public void onSolve(BaseEntity response) {
+                                    public void onSolve(BaseEntity<Order> response) {
                                         if (response.isSuccess()) {
-                                            if (!ActivityCollector.isActivityExist(OpenDoorActivity.class)) {
-                                                ActivityUtils.toActivity(self, OpenDoorActivity.class);
+                                            if (response.getData().isOpen()) {
+                                                if (!ActivityCollector.isActivityExist(OpenDoorActivity.class)) {
+                                                    ActivityUtils.toActivity(self, OpenDoorActivity.class);
+                                                }
+                                            } else {
+                                                Toasty.normal(self, response.getData().getMessage()).show();
+                                                if (qrCodeDialog != null && !qrCodeDialog.isShowing()) {
+                                                    qrCodeDialog.show();
+                                                }
                                             }
                                         }
                                     }
@@ -205,25 +213,22 @@ public class MainActivity extends BaseActivity {
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
     @OnClick(R.id.button)
     public void onViewClicked() {
-        App.resetHub();
-        Log.d("MainActivity",App.getHub().getConnectionState().name());
-
-        if(qrCodeDialog!=null&&!qrCodeDialog.isShowing()) {
-            qrCodeDialog.show();
+//        Log.d("MainActivity",App.getHub().getConnectionState().name());
+        if (qrCodeDialog != null && qrCodeDialog.isShowing()) {
+            qrCodeDialog.dismiss();
         }
-
-//        WxPayFace.getInstance().getWxpayfaceRawdata(new IWxPayfaceCallback() {
-//            @Override
-//            public void response(final Map info) throws RemoteException {
-//                if (info == null) {
-//                    new RuntimeException("调用返回为空").printStackTrace();
-//                    return;
-//                } else {
-//                    String rawdata = (String) info.get("rawdata");
-//                    getWxAuthInfo(rawdata);
-//                }
-//            }
-//        });
+        WxPayFace.getInstance().getWxpayfaceRawdata(new IWxPayfaceCallback() {
+            @Override
+            public void response(final Map info) throws RemoteException {
+                if (info == null) {
+                    new RuntimeException("调用返回为空").printStackTrace();
+                    return;
+                } else {
+                    String rawdata = (String) info.get("rawdata");
+                    getWxAuthInfo(rawdata);
+                }
+            }
+        });
     }
 
 
@@ -238,7 +243,9 @@ public class MainActivity extends BaseActivity {
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
     private void updateAd(VersionModel versionModel) {
-        adPresentation.updateVideos(versionModel);
+        if (adPresentation != null) {
+            adPresentation.updateVideos(versionModel);
+        }
     }
 
     public int getVersion() {
@@ -255,15 +262,13 @@ public class MainActivity extends BaseActivity {
         return versionCode;
     }
 
-    private void openDoor()
-    {
+    private void openDoor() {
         if (!ActivityCollector.isActivityExist(OpenDoorActivity.class)) {
             ActivityUtils.toActivity(self, OpenDoorActivity.class);
         }
     }
 
-    private void closeDoor()
-    {
+    private void closeDoor() {
         if (ActivityCollector.isActivityExist(OpenDoorActivity.class)) {
             ActivityCollector.getActivity(OpenDoorActivity.class).finish();
         }
@@ -272,12 +277,11 @@ public class MainActivity extends BaseActivity {
         }
     }
 
-    private void updateNotify(String message)
-    {
+    private void updateNotify(String message) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                Toasty.normal(self,"开始更新").show();
+                Toasty.normal(self, "开始更新").show();
             }
         });
         VersionModel versionModel = new Gson().fromJson(message, VersionModel.class);
@@ -285,10 +289,9 @@ public class MainActivity extends BaseActivity {
     }
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
-    private void updateAd(String message)
-    {
+    private void updateAd(String message) {
         VersionModel versionModel = new Gson().fromJson(message, VersionModel.class);
-        adPresentation.updateVideos(versionModel);
+        updateAd(versionModel);
     }
 
     public class HubReceiver extends BroadcastReceiver {
@@ -298,18 +301,15 @@ public class MainActivity extends BaseActivity {
         public void onReceive(Context context, Intent intent) {
             String intentAction = intent.getAction();
             if (intentAction.equals("openNotify")) {
-                     openDoor();
-            }else if(intentAction.equals("closeNotify"))
-            {
+                openDoor();
+            } else if (intentAction.equals("closeNotify")) {
                 closeDoor();
 
-            }else if(intentAction.equals("updateNotify"))
-            {
-                String message =intent.getStringExtra("message");
+            } else if (intentAction.equals("updateNotify")) {
+                String message = intent.getStringExtra("message");
                 updateNotify(message);
-            }else if(intentAction.equals("updateAd"))
-            {
-                String message =intent.getStringExtra("message");
+            } else if (intentAction.equals("updateAd")) {
+                String message = intent.getStringExtra("message");
                 updateAd(message);
             }
         }
@@ -317,8 +317,10 @@ public class MainActivity extends BaseActivity {
 
     @Override
     protected void onDestroy() {
-        adPresentation.dismiss();
-        adPresentation =null;
+        if (adPresentation != null) {
+            adPresentation.dismiss();
+            adPresentation = null;
+        }
         unregisterReceiver(hubReceiver);
         super.onDestroy();
     }
