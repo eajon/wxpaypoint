@@ -8,6 +8,9 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.ImageView;
 
+import java.util.Timer;
+import java.util.TimerTask;
+
 import cn.csfz.wxpaypoint.R;
 import cn.csfz.wxpaypoint.util.QRCodeUtil;
 import cn.csfz.wxpaypoint.util.Utils;
@@ -38,9 +41,9 @@ public class QrCodeDialog extends Dialog {
         super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.dialog_qrcode);
-        ImageView qrImage =findViewById(R.id.qrcode_image);
-        String sn =Utils.getDeviceSN();
-        qrImage.setImageBitmap(QRCodeUtil.createQRCodeBitmap(url+sn,dpToPx(this.getContext(), 200),dpToPx(this.getContext(), 200)));
+        ImageView qrImage = findViewById(R.id.qrcode_image);
+        String sn = Utils.getDeviceSN();
+        qrImage.setImageBitmap(QRCodeUtil.createQRCodeBitmap(url + sn, dpToPx(this.getContext(), 200), dpToPx(this.getContext(), 200)));
         Window dialogWindow = this.getWindow();
         WindowManager.LayoutParams lp = dialogWindow.getAttributes();
 
@@ -61,7 +64,18 @@ public class QrCodeDialog extends Dialog {
 
     private int dpToPx(Context context, float dpValue) {//dp转换为px
         float scale = context.getResources().getDisplayMetrics().density;//获得当前屏幕密度
-        return ( int ) (dpValue * scale + 0.5f);
+        return (int) (dpValue * scale + 0.5f);
+    }
+
+    public void show() {
+        super.show();
+        final Timer t = new Timer();
+        t.schedule(new TimerTask() {
+            public void run() {
+                QrCodeDialog.this.dismiss();
+                t.cancel();
+            }
+        }, 30000);
     }
 
 
