@@ -87,8 +87,6 @@ public class MainActivity extends BaseActivity {
         checkVersion();
         DaemonHolder.startService();
         getSecondDisplay();
-        qrCodeDialog = new QrCodeDialog(self);
-
     }
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
@@ -149,9 +147,8 @@ public class MainActivity extends BaseActivity {
                                 runOnUiThread(new Runnable() {
                                     @Override
                                     public void run() {
-                                        if (qrCodeDialog != null && !qrCodeDialog.isShowing()) {
-                                            qrCodeDialog.show();
-                                        }
+                                        qrCodeDialog = new QrCodeDialog(self);
+                                        qrCodeDialog.show();
                                     }
                                 });
                                 return;
@@ -166,10 +163,9 @@ public class MainActivity extends BaseActivity {
                                                     ActivityUtils.toActivity(self, OpenDoorActivity.class);
                                                 }
                                             } else {
-                                                Toasty.normal(self, response.getData().getMessage()).show();
-                                                if (qrCodeDialog != null && !qrCodeDialog.isShowing()) {
-                                                    qrCodeDialog.show();
-                                                }
+                                                qrCodeDialog = new QrCodeDialog(self);
+                                                qrCodeDialog.setMessage(response.getData().getMessage());
+                                                qrCodeDialog.show();
                                             }
                                         }
                                     }
@@ -211,6 +207,7 @@ public class MainActivity extends BaseActivity {
 //        Log.d("MainActivity",App.getHub().getConnectionState().name());
         if (qrCodeDialog != null && qrCodeDialog.isShowing()) {
             qrCodeDialog.dismiss();
+            qrCodeDialog = null;
         }
         WxPayFace.getInstance().getWxpayfaceRawdata(new IWxPayfaceCallback() {
             @Override
@@ -301,6 +298,7 @@ public class MainActivity extends BaseActivity {
         public void onReceive(Context context, Intent intent) {
             if (qrCodeDialog != null && qrCodeDialog.isShowing()) {
                 qrCodeDialog.dismiss();
+                qrCodeDialog = null;
             }
             String intentAction = intent.getAction();
             if (intentAction.equals("openNotify")) {
@@ -323,6 +321,10 @@ public class MainActivity extends BaseActivity {
         if (adPresentation != null) {
             adPresentation.dismiss();
             adPresentation = null;
+        }
+        if (qrCodeDialog != null && qrCodeDialog.isShowing()) {
+            qrCodeDialog.dismiss();
+            qrCodeDialog = null;
         }
         unregisterReceiver(hubReceiver);
         super.onDestroy();

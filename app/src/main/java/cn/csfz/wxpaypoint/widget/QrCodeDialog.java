@@ -7,6 +7,7 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.ImageView;
+import android.widget.TextView;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -53,6 +54,7 @@ public class QrCodeDialog extends Dialog {
                 QrCodeDialog.this.dismiss();
             }
         });
+
 //
 //		DisplayMetrics  dm = new DisplayMetrics();
 //		WindowManager wm = (WindowManager) getContext().getSystemService(Context.WINDOW_SERVICE);
@@ -67,12 +69,19 @@ public class QrCodeDialog extends Dialog {
         return (int) (dpValue * scale + 0.5f);
     }
 
+    public void setMessage(String message) {
+
+        ((TextView) findViewById(R.id.message_text)).setText(message);
+    }
+
     public void show() {
         super.show();
         final Timer t = new Timer();
         t.schedule(new TimerTask() {
             public void run() {
-                QrCodeDialog.this.dismiss();
+                if (null != QrCodeDialog.this && QrCodeDialog.this.isShowing()) {
+                    QrCodeDialog.this.dismiss();
+                }
                 t.cancel();
             }
         }, 30000);
