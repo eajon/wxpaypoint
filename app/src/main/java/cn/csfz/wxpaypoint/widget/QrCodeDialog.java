@@ -21,6 +21,7 @@ public class QrCodeDialog extends Dialog {
 
     private Context mContext;
     private String url = "https://alipay.vendor.cxwos.com/?machineCode=";
+    private TextView textView;
 
     public QrCodeDialog(Context context, boolean cancelable, OnCancelListener cancelListener) {
         super(context, cancelable, cancelListener);
@@ -47,7 +48,7 @@ public class QrCodeDialog extends Dialog {
         qrImage.setImageBitmap(QRCodeUtil.createQRCodeBitmap(url + sn, dpToPx(this.getContext(), 200), dpToPx(this.getContext(), 200)));
         Window dialogWindow = this.getWindow();
         WindowManager.LayoutParams lp = dialogWindow.getAttributes();
-
+        textView =findViewById(R.id.message_text);
         findViewById(R.id.back_text).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -71,7 +72,7 @@ public class QrCodeDialog extends Dialog {
 
     public void setMessage(String message) {
 
-        ((TextView) findViewById(R.id.message_text)).setText(message);
+        textView.setText(message);
     }
 
     public void show() {

@@ -164,8 +164,8 @@ public class MainActivity extends BaseActivity {
                                                 }
                                             } else {
                                                 qrCodeDialog = new QrCodeDialog(self);
-                                                qrCodeDialog.setMessage(response.getData().getMessage());
                                                 qrCodeDialog.show();
+                                                qrCodeDialog.setMessage(response.getData().getMessage());
                                             }
                                         }
                                     }

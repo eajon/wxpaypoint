@@ -49,7 +49,7 @@ public class App extends Application implements Thread.UncaughtExceptionHandler 
     public void onCreate() {
         super.onCreate();
         self = this;
-        Thread.setDefaultUncaughtExceptionHandler(this);
+//        Thread.setDefaultUncaughtExceptionHandler(this);
         UMConfigure.init(App.this, "5f1a8825d62dd10bc71bda16", "csfz", UMConfigure.DEVICE_TYPE_PHONE, null);
 
         OkHttpClient.Builder httpClient = new OkHttpClient.Builder()
