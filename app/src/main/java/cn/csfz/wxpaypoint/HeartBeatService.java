@@ -11,6 +11,7 @@ import android.util.Log;
 import com.google.gson.Gson;
 import com.microsoft.signalr.HubConnectionState;
 import com.sunfusheng.daemon.AbsHeartBeatService;
+import com.trello.rxlifecycle3.android.ActivityEvent;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -21,9 +22,11 @@ import cn.csfz.wxpaypoint.model.VersionModel;
 import cn.csfz.wxpaypoint.util.ActivityCollector;
 import cn.eajon.tool.ActivityUtils;
 import cn.eajon.tool.LogUtils;
+import cn.eajon.tool.NetworkUtils;
 import cn.eajon.tool.ObservableUtils;
 import io.reactivex.Observable;
 import io.reactivex.functions.Consumer;
+import io.reactivex.functions.Predicate;
 
 /**
  * @author sunfusheng on 2018/8/3.
@@ -32,14 +35,18 @@ public class HeartBeatService extends AbsHeartBeatService {
     private static final String TAG = "---> HeartBeatService";
     private static final android.os.Handler mainThreadHandler = new android.os.Handler(Looper.getMainLooper());
 
+    private int index;
+
     @Override
     public void onStartService() {
         Log.d(TAG, "onStartService()");
+        index = 0;
     }
 
     @Override
     public void onStopService() {
         Log.e(TAG, "onStopService()");
+        index = 0;
     }
 
     @Override
@@ -54,8 +61,13 @@ public class HeartBeatService extends AbsHeartBeatService {
 
     @Override
     public void onHeartBeat() {
+        Log.d(TAG, "onHeartBeat()" + index);
+        if (index < 5) {
+            moveToFront();
+            index++;
+        }
         Log.d(TAG, "onHeartBeat()");
-        Log.d(TAG,App.getHub().getConnectionState().name());
+        Log.d(TAG, App.getHub().getConnectionState().name());
         startHub();
 
         if (!ActivityCollector.isActivityExist(MainActivity.class)) {
@@ -89,12 +101,14 @@ public class HeartBeatService extends AbsHeartBeatService {
             // bring to front
             if (recentTasks.get(i).baseActivity.toShortString().indexOf("cn.csfz.wxpaypoint.MainActivity") > -1) {
                 manager.moveTaskToFront(recentTasks.get(i).id, ActivityManager.MOVE_TASK_WITH_HOME);
+                Intent intent = new Intent(this, MainActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
+                startActivity(intent);
             }
         }
     }
 
-    private void startHub()
-    {
+    private void startHub() {
         if (App.getHub().getConnectionState() == HubConnectionState.DISCONNECTED) {
             App.getHub().on("closeNotify", (message) -> {
                 LogUtils.d(message);
@@ -115,19 +129,19 @@ public class HeartBeatService extends AbsHeartBeatService {
                 LogUtils.e(message);
                 Intent intent = new Intent();
                 intent.setAction("updateNotify");
-                intent.putExtra("message",message);
+                intent.putExtra("message", message);
                 sendBroadcast(intent);
             }, String.class);
             App.getHub().on("updateAd", (message) -> {
                 LogUtils.d(message);
                 Intent intent = new Intent();
                 intent.setAction("updateAd");
-                intent.putExtra("message",message);
+                intent.putExtra("message", message);
                 sendBroadcast(intent);
             }, String.class);
             try {
                 App.getHub().start().blockingAwait();
-                Log.d(TAG,"已连接上");
+                Log.d(TAG, "已连接上");
             } catch (Exception e) {
                 if (null != e.getMessage()) {
                     LogUtils.e(e.getMessage());
@@ -135,4 +149,6 @@ public class HeartBeatService extends AbsHeartBeatService {
             }
         }
     }
+
+
 }

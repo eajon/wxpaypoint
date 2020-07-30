@@ -1,5 +1,6 @@
 package cn.csfz.wxpaypoint;
 
+import android.app.ActivityManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -10,23 +11,26 @@ import android.hardware.display.DisplayManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.RemoteException;
-import android.util.Log;
 import android.view.Display;
 import android.view.WindowManager;
 import android.widget.ImageView;
 
 import androidx.annotation.RequiresApi;
 
-import com.github.eajon.exception.ApiException;
-import com.github.eajon.observer.HttpObserver;
 import com.google.gson.Gson;
-import com.microsoft.signalr.HubConnectionState;
 import com.sunfusheng.daemon.DaemonHolder;
 import com.tencent.wxpayface.IWxPayfaceCallback;
 import com.tencent.wxpayface.WxPayFace;
+import com.trello.rxlifecycle3.android.ActivityEvent;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -46,7 +50,10 @@ import cn.csfz.wxpaypoint.util.ActivityCollector;
 import cn.csfz.wxpaypoint.widget.QrCodeDialog;
 import cn.eajon.tool.ActivityUtils;
 import cn.eajon.tool.LogUtils;
+import cn.eajon.tool.ObservableUtils;
+import cn.eajon.tool.ShellUtils;
 import es.dmoral.toasty.Toasty;
+import io.reactivex.Observable;
 import top.wuhaojie.installerlibrary.AutoInstaller;
 
 public class MainActivity extends BaseActivity {
@@ -98,9 +105,7 @@ public class MainActivity extends BaseActivity {
             adPresentation = new AdPresentation(MainActivity.this, displays[displays.length - 1]);
             adPresentation.getWindow().setType(
                     WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
-            if (!adPresentation.isShowing()) {
-                adPresentation.show();
-            }
+            adPresentation.show();
         }
 
 
@@ -120,17 +125,10 @@ public class MainActivity extends BaseActivity {
                     map.put("payscore_out_request_no", response.getData().getPayscore_out_request_no());
                     map.put("payscore_service_id", response.getData().getPayscore_service_id());
 //                    Toasty.normal(self, "开始获取支付分").show();
-                    index = 0;
                     WxPayFace.getInstance().getUserPayScoreStatus(map, new IWxPayfaceCallback() {
                         @Override
                         public void response(Map map) throws RemoteException {
-                            index++;
-//                            runOnUiThread(new Runnable() {
-//                                @Override
-//                                public void run() {
-//                                    Toasty.normal(self, "支付分返回第" + index + "次").show();
-//                                }
-//                            });
+//                            WxPayFace.getInstance().releaseWxpayface(self);
                             if (map == null) {
                                 runOnUiThread(new Runnable() {
                                     @Override
@@ -183,32 +181,57 @@ public class MainActivity extends BaseActivity {
     }
 
     private void checkVersion() {
-        VersionApi.getVersion().request(new SolveObserver<BaseEntity<VersionModel>>(self) {
-            @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
-            @Override
-            public void onSolve(BaseEntity<VersionModel> response) {
-                updateApk(response.getData());
-                updateAd(response.getData());
-            }
-        });
+        Observable.interval(1, TimeUnit.SECONDS)
+                .filter(aLong -> {
+                    return canPing();//符合条件后就不在发送
+                }).take(1)
+                .compose(ObservableUtils.ioMain())
+                .compose(ObservableUtils.lifeCycle(MainActivity.this, ActivityEvent.DESTROY))
+                .delay(10, TimeUnit.SECONDS)
+                .subscribe(aLong -> VersionApi.getVersion().request(new SolveObserver<BaseEntity<VersionModel>>(self) {
+                    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
+                    @Override
+                    public void onSolve(BaseEntity<VersionModel> response) {
+                        updateApk(response.getData());
+                        updateAd(response.getData());
+                    }
+                }));
+
     }
 
+    private boolean canPing() {
+        URL url = null;
+        try {
+            url = new URL(BuildConfig.SERVER_URL);
+            InputStream in = url.openStream();//打开到此 URL 的连接并返回一个用于从该连接读入的 InputStream
+            System.out.println("连接正常");
+            in.close();//关闭此输入流并释放与该流关联的所有系统资源。
+            return true;
+        } catch (IOException e) {
+            System.out.println("无法连接到：" + url.toString());
+        }
+        return false;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         // TODO: add setContentView(...) invocation
         ButterKnife.bind(this);
+
     }
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
     @OnClick(R.id.button)
     public void onViewClicked() {
-//        Log.d("MainActivity",App.getHub().getConnectionState().name());
+
         if (qrCodeDialog != null && qrCodeDialog.isShowing()) {
             qrCodeDialog.dismiss();
             qrCodeDialog = null;
         }
+
+
+
         WxPayFace.getInstance().getWxpayfaceRawdata(new IWxPayfaceCallback() {
             @Override
             public void response(final Map info) throws RemoteException {
@@ -226,6 +249,16 @@ public class MainActivity extends BaseActivity {
                 }
             }
         });
+
+
+//           ActivityManager am = (ActivityManager) self.getSystemService(Context.ACTIVITY_SERVICE);
+//            am.killBackgroundProcesses("com.tencent.wxpayface");
+//            Method forceStopPackage = am.getClass().getDeclaredMethod("forceStopPackage", String.class);
+//            forceStopPackage.setAccessible(true);
+//
+//        Log.d("MainActivity",App.getHub().getConnectionState().name());
+
+
     }
 
 

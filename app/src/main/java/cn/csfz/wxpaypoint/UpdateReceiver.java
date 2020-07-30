@@ -3,6 +3,7 @@ package cn.csfz.wxpaypoint;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Handler;
 
 import com.sunfusheng.daemon.DaemonHolder;
 

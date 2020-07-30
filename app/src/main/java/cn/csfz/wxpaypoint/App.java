@@ -70,16 +70,16 @@ public class App extends Application implements Thread.UncaughtExceptionHandler 
                 .okHttpClient(httpClient)
                 .rxCache(new File(getExternalCacheDir(), "load"))
                 .log(!BuildConfig.PROD, "load");
+        DaemonHolder.init(this, HeartBeatService.class);
+
         WxPayFace.getInstance().initWxpayface(this, new IWxPayfaceCallback() {
 
             @Override
             public void response(Map map) throws RemoteException {
                 LogUtils.d(map.toString());
+
             }
         });
-        DaemonHolder.init(this, HeartBeatService.class);
-
-
 
     }
 
