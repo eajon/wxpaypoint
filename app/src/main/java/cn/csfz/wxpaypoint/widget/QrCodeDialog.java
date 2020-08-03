@@ -48,6 +48,9 @@ public class QrCodeDialog extends Dialog {
         qrImage.setImageBitmap(QRCodeUtil.createQRCodeBitmap(url + sn, dpToPx(this.getContext(), 200), dpToPx(this.getContext(), 200)));
         Window dialogWindow = this.getWindow();
         WindowManager.LayoutParams lp = dialogWindow.getAttributes();
+        lp.width = dpToPx(this.getContext(), 280);
+        dialogWindow.setAttributes(lp);
+        setCanceledOnTouchOutside(true);
         textView =findViewById(R.id.message_text);
         findViewById(R.id.back_text).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -55,14 +58,6 @@ public class QrCodeDialog extends Dialog {
                 QrCodeDialog.this.dismiss();
             }
         });
-
-//
-//		DisplayMetrics  dm = new DisplayMetrics();
-//		WindowManager wm = (WindowManager) getContext().getSystemService(Context.WINDOW_SERVICE);
-//		wm.getDefaultDisplay().getMetrics(dm);
-        lp.width = dpToPx(this.getContext(), 280);
-        dialogWindow.setAttributes(lp);
-        setCanceledOnTouchOutside(true);
     }
 
     private int dpToPx(Context context, float dpValue) {//dp转换为px

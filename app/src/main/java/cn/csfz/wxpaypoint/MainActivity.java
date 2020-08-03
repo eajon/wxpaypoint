@@ -1,21 +1,34 @@
 package cn.csfz.wxpaypoint;
 
-import android.app.ActivityManager;
+import android.app.Dialog;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.hardware.display.DisplayManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.RemoteException;
+import android.text.TextUtils;
 import android.view.Display;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.Window;
 import android.view.WindowManager;
+import android.webkit.MimeTypeMap;
+import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.TextView;
 
 import androidx.annotation.RequiresApi;
+import androidx.appcompat.app.AlertDialog;
+import androidx.core.content.FileProvider;
 
 import com.google.gson.Gson;
 import com.sunfusheng.daemon.DaemonHolder;
@@ -23,12 +36,15 @@ import com.tencent.wxpayface.IWxPayfaceCallback;
 import com.tencent.wxpayface.WxPayFace;
 import com.trello.rxlifecycle3.android.ActivityEvent;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
+import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -49,9 +65,10 @@ import cn.csfz.wxpaypoint.model.VersionModel;
 import cn.csfz.wxpaypoint.util.ActivityCollector;
 import cn.csfz.wxpaypoint.widget.QrCodeDialog;
 import cn.eajon.tool.ActivityUtils;
-import cn.eajon.tool.LogUtils;
+import cn.eajon.tool.AppUtils;
+import cn.eajon.tool.FileUtils;
 import cn.eajon.tool.ObservableUtils;
-import cn.eajon.tool.ShellUtils;
+import cn.eajon.tool.Utils;
 import es.dmoral.toasty.Toasty;
 import io.reactivex.Observable;
 import top.wuhaojie.installerlibrary.AutoInstaller;
@@ -60,12 +77,17 @@ public class MainActivity extends BaseActivity {
     @BindView(R.id.open_iv)
     ImageView openIv;
 
+
     AdPresentation adPresentation;
 
 
     QrCodeDialog qrCodeDialog;
     int index;
     HubReceiver hubReceiver;
+    @BindView(R.id.button)
+    TextView button;
+    @BindView(R.id.quit_button)
+    TextView quitButton;
 
     @Override
     protected boolean hasToolBar() {
@@ -91,6 +113,48 @@ public class MainActivity extends BaseActivity {
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
     @Override
     protected void initLogic() {
+        quitButton.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View view) {
+                AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                View dialogView = LayoutInflater.from(MainActivity.this).inflate(R.layout.dialog_password, null);
+                TextView cancel = dialogView.findViewById(R.id.choosepage_cancel);
+                TextView sure = dialogView.findViewById(R.id.choosepage_sure);
+                final EditText edittext = dialogView.findViewById(R.id.choosepage_edittext);
+                final Dialog dialog = builder.create();
+                dialog.show();
+                Window dialogWindow = dialog.getWindow();
+                WindowManager.LayoutParams lp = dialogWindow.getAttributes();
+                lp.width = 500;
+                dialogWindow.setAttributes(lp);
+                dialog.setCanceledOnTouchOutside(true);
+                dialogWindow.setContentView(dialogView);
+                //使editext可以唤起软键盘
+                dialogWindow.clearFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM);
+                cancel.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        dialog.dismiss();
+                    }
+                });
+                sure.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        if (edittext.getText().toString().equals("963214")) {
+                            Intent paramIntent = new Intent("android.intent.action.MAIN");
+                            paramIntent.setComponent(new ComponentName("android", "com.android.internal.app.ResolverActivity"));
+                            paramIntent.addCategory("android.intent.category.DEFAULT");
+                            paramIntent.addCategory("android.intent.category.HOME");
+                            self.startActivity(paramIntent);
+
+                        }
+                        dialog.dismiss();
+                    }
+                });
+
+                return true;
+            }
+        });
         checkVersion();
         DaemonHolder.startService();
         getSecondDisplay();
@@ -113,17 +177,18 @@ public class MainActivity extends BaseActivity {
 
     private void getWxAuthInfo(String rawdata) {
 
-        WxApi.getWxAuthInfo(rawdata).request(new SolveObserver<BaseEntity<AuthInfo>>(self) {
+        WxApi.getWxAuthInfo(rawdata).request(new SolveObserver<BaseEntity<Object>>(self) {
             @Override
-            public void onSolve(BaseEntity<AuthInfo> response) {
+            public void onSolve(BaseEntity<Object> response) {
                 if (response.isSuccess()) {
+                    AuthInfo authInfo = new Gson().fromJson(new Gson().toJson(response.getData()), AuthInfo.class);
                     Map<String, String> map = new HashMap<>();
-                    map.put("appid", response.getData().getAppid());
-                    map.put("mch_id", response.getData().getMch_id());
-                    map.put("out_trade_no", response.getData().getOut_trade_no());
-                    map.put("authinfo", response.getData().getAuthinfo());
-                    map.put("payscore_out_request_no", response.getData().getPayscore_out_request_no());
-                    map.put("payscore_service_id", response.getData().getPayscore_service_id());
+                    map.put("appid", authInfo.getAppid());
+                    map.put("mch_id", authInfo.getMch_id());
+                    map.put("out_trade_no", authInfo.getOut_trade_no());
+                    map.put("authinfo", authInfo.getAuthinfo());
+                    map.put("payscore_out_request_no", authInfo.getPayscore_out_request_no());
+                    map.put("payscore_service_id", authInfo.getPayscore_service_id());
 //                    Toasty.normal(self, "开始获取支付分").show();
                     WxPayFace.getInstance().getUserPayScoreStatus(map, new IWxPayfaceCallback() {
                         @Override
@@ -152,18 +217,19 @@ public class MainActivity extends BaseActivity {
                                 return;
                             }
                             if (map.containsKey("face_sid") && map.containsKey("openid")) {
-                                WxApi.createOrder((String) map.get("face_sid"), (String) map.get("openid"), response.getData().getOut_trade_no()).request(new SolveObserver<BaseEntity<Order>>(self) {
+                                WxApi.createOrder((String) map.get("face_sid"), (String) map.get("openid"), authInfo.getOut_trade_no()).request(new SolveObserver<BaseEntity<Object>>(self) {
                                     @Override
-                                    public void onSolve(BaseEntity<Order> response) {
+                                    public void onSolve(BaseEntity<Object> response) {
+                                        Order order = new Gson().fromJson(new Gson().toJson(response.getData()), Order.class);
                                         if (response.isSuccess()) {
-                                            if (response.getData().isOpen()) {
+                                            if (order.isOpen()) {
                                                 if (!ActivityCollector.isActivityExist(OpenDoorActivity.class)) {
                                                     ActivityUtils.toActivity(self, OpenDoorActivity.class);
                                                 }
                                             } else {
                                                 qrCodeDialog = new QrCodeDialog(self);
                                                 qrCodeDialog.show();
-                                                qrCodeDialog.setMessage(response.getData().getMessage());
+                                                qrCodeDialog.setMessage(order.getMessage());
                                             }
                                         }
                                     }
@@ -188,12 +254,13 @@ public class MainActivity extends BaseActivity {
                 .compose(ObservableUtils.ioMain())
                 .compose(ObservableUtils.lifeCycle(MainActivity.this, ActivityEvent.DESTROY))
                 .delay(10, TimeUnit.SECONDS)
-                .subscribe(aLong -> VersionApi.getVersion().request(new SolveObserver<BaseEntity<VersionModel>>(self) {
+                .subscribe(aLong -> VersionApi.getVersion().request(new SolveObserver<BaseEntity<Object>>(self) {
                     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
                     @Override
-                    public void onSolve(BaseEntity<VersionModel> response) {
-                        updateApk(response.getData());
-                        updateAd(response.getData());
+                    public void onSolve(BaseEntity<Object> response) {
+                        VersionModel versionModel = new Gson().fromJson(new Gson().toJson(response.getData()), VersionModel.class);
+                        updateApk(versionModel);
+                        updateAd(versionModel);
                     }
                 }));
 
@@ -218,7 +285,7 @@ public class MainActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         // TODO: add setContentView(...) invocation
         ButterKnife.bind(this);
-
+//        Toasty.success(self,AppUtils.isAppRoot()+"").show();
     }
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
@@ -229,7 +296,6 @@ public class MainActivity extends BaseActivity {
             qrCodeDialog.dismiss();
             qrCodeDialog = null;
         }
-
 
 
         WxPayFace.getInstance().getWxpayfaceRawdata(new IWxPayfaceCallback() {
@@ -264,10 +330,102 @@ public class MainActivity extends BaseActivity {
 
     private void updateApk(VersionModel versionModel) {
         if (versionModel.getVersion() > getVersion()) {
-            AutoInstaller installer = new AutoInstaller.Builder(self)
-                    .setMode(AutoInstaller.MODE.ROOT_ONLY)
-                    .build();
-            installer.installFromUrl(versionModel.getUrl());
+            if (AppUtils.isAppRoot()) {
+                AutoInstaller installer = new AutoInstaller.Builder(self)
+                        .setMode(AutoInstaller.MODE.ROOT_ONLY)
+                        .build();
+                installer.installFromUrl(versionModel.getUrl());
+            } else {
+                (new Thread(new Runnable() {
+                    public void run() {
+                        File file = downloadFile(versionModel.getUrl());
+                        try {
+                            if (file == null) {
+                                return;
+                            }
+                            Intent intent = new Intent(Intent.ACTION_VIEW);
+                            String type;
+
+
+                            type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(FileUtils.getFileExtension(file));
+
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                                intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                                Uri contentUri = FileProvider.getUriForFile(self, "cn.csfz.paypoint.fileprovider", file);
+                                intent.setDataAndType(contentUri, type);
+                                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                                self.startActivity(intent);
+                            }
+                        }catch (Exception e)
+                        {
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    Toasty.error(self,"更新失败"+e.getMessage()).show();
+                                }
+                            });
+                        }
+                    }
+                })).start();
+
+            }
+
+        }
+    }
+
+    private File downloadFile(String httpUrl) {
+        if (TextUtils.isEmpty(httpUrl)) {
+            throw new IllegalArgumentException();
+        } else {
+            File file = new File(Environment.getExternalStorageDirectory().getAbsolutePath());
+            if (!file.exists()) {
+                file.mkdirs();
+            }
+
+            file = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + File.separator + "update.apk");
+            InputStream inputStream = null;
+            FileOutputStream outputStream = null;
+            HttpURLConnection connection = null;
+
+            try {
+                URL url = new URL(httpUrl);
+                connection = (HttpURLConnection) url.openConnection();
+                connection.setConnectTimeout(10000);
+                connection.setReadTimeout(10000);
+                connection.connect();
+                inputStream = connection.getInputStream();
+                outputStream = new FileOutputStream(file);
+                byte[] buffer = new byte[1024];
+                boolean var8 = false;
+
+                int len;
+                while ((len = inputStream.read(buffer)) > 0) {
+                    outputStream.write(buffer, 0, len);
+                }
+            } catch (Exception var17) {
+                var17.printStackTrace();
+            } finally {
+                try {
+                    if (inputStream != null) {
+                        inputStream.close();
+                    }
+
+                    if (outputStream != null) {
+                        outputStream.close();
+                    }
+
+                    if (connection != null) {
+                        connection.disconnect();
+                    }
+                } catch (IOException var16) {
+                    inputStream = null;
+                    outputStream = null;
+                }
+
+            }
+
+            return file;
+
         }
     }
 
@@ -305,6 +463,7 @@ public class MainActivity extends BaseActivity {
         if (!ActivityCollector.isActivityExist(CloseDoorActivity.class)) {
             ActivityUtils.toActivity(self, CloseDoorActivity.class);
         }
+
     }
 
     private void updateNotify(String message) {
@@ -361,5 +520,51 @@ public class MainActivity extends BaseActivity {
         }
         unregisterReceiver(hubReceiver);
         super.onDestroy();
+    }
+
+
+    private void setDefaultLauncher() {
+        String packageName = "com.android.launcher3";    //默认launcher包名
+        String className = "com.android.launcher3.Launcher";    //默认launcher入口
+
+        PackageManager pm = self.getPackageManager();
+        //清除当前默认launcher
+        ArrayList<IntentFilter> intentList = new ArrayList<IntentFilter>();
+        ArrayList<ComponentName> cnList = new ArrayList<ComponentName>();
+        self.getPackageManager().getPreferredActivities(intentList, cnList, null);
+        IntentFilter dhIF = null;
+        for (int i = 0; i < cnList.size(); i++) {
+            dhIF = intentList.get(i);
+            if (dhIF.hasAction(Intent.ACTION_MAIN) && dhIF.hasCategory(Intent.CATEGORY_HOME)) {
+                self.getPackageManager().clearPackagePreferredActivities(cnList.get(i).getPackageName());
+            }
+        }
+        //获取所有launcher activity
+        Intent intent = new Intent(Intent.ACTION_MAIN);
+        intent.addCategory(Intent.CATEGORY_HOME);
+
+
+        List<ResolveInfo> list = pm.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY);
+
+
+        // get all components and the best match
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_MAIN);
+        filter.addCategory(Intent.CATEGORY_HOME);
+        filter.addCategory(Intent.CATEGORY_DEFAULT);
+        final int N = list.size();
+        //设置默认launcher
+        ComponentName launcher = new ComponentName(packageName, className);
+        ComponentName[] set = new ComponentName[N];
+        int defaultMatch = 0;
+        for (int i = 0; i < N; i++) {
+            ResolveInfo r = list.get(i);
+            set[i] = new ComponentName(r.activityInfo.packageName, r.activityInfo.name);
+            if (launcher.getClassName().equals(r.activityInfo.name)) {
+                defaultMatch = r.match;
+            }
+        }
+        //将设置的默认launcher，添加到系统偏好
+        pm.addPreferredActivity(filter, defaultMatch, set, launcher);
     }
 }

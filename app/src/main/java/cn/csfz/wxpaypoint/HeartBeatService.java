@@ -62,7 +62,7 @@ public class HeartBeatService extends AbsHeartBeatService {
     @Override
     public void onHeartBeat() {
         Log.d(TAG, "onHeartBeat()" + index);
-        if (index < 5) {
+        if (index < 2) {
             moveToFront();
             index++;
         }

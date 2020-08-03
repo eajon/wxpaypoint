@@ -11,6 +11,8 @@ public class WxApi {
 
 
 
+
+
     public static RxHttp getWxAuthInfo(String data)
     {
         RawData rawData =new RawData();

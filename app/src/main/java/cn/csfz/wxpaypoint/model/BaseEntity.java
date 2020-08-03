@@ -1,5 +1,6 @@
 package cn.csfz.wxpaypoint.model;
 
+
 import lombok.Data;
 
 /**
@@ -7,7 +8,7 @@ import lombok.Data;
  */
 
 @Data
-public class BaseEntity<T> {
+public class BaseEntity<T>  {
 
 
     private String message;
