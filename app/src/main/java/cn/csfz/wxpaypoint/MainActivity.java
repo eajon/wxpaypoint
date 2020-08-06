@@ -30,7 +30,9 @@ import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.FileProvider;
 
+import com.bumptech.glide.Glide;
 import com.google.gson.Gson;
+import com.jakewharton.rxbinding3.view.RxView;
 import com.sunfusheng.daemon.DaemonHolder;
 import com.tencent.wxpayface.IWxPayfaceCallback;
 import com.tencent.wxpayface.WxPayFace;
@@ -63,14 +65,17 @@ import cn.csfz.wxpaypoint.model.BaseEntity;
 import cn.csfz.wxpaypoint.model.Order;
 import cn.csfz.wxpaypoint.model.VersionModel;
 import cn.csfz.wxpaypoint.util.ActivityCollector;
+import cn.csfz.wxpaypoint.util.Utils;
 import cn.csfz.wxpaypoint.widget.QrCodeDialog;
 import cn.eajon.tool.ActivityUtils;
 import cn.eajon.tool.AppUtils;
 import cn.eajon.tool.FileUtils;
 import cn.eajon.tool.ObservableUtils;
-import cn.eajon.tool.Utils;
+import cn.eajon.tool.StringUtils;
 import es.dmoral.toasty.Toasty;
 import io.reactivex.Observable;
+import io.reactivex.functions.Consumer;
+import kotlin.Unit;
 import top.wuhaojie.installerlibrary.AutoInstaller;
 
 public class MainActivity extends BaseActivity {
@@ -82,7 +87,6 @@ public class MainActivity extends BaseActivity {
 
 
     QrCodeDialog qrCodeDialog;
-    int index;
     HubReceiver hubReceiver;
     @BindView(R.id.button)
     TextView button;
@@ -113,9 +117,33 @@ public class MainActivity extends BaseActivity {
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
     @Override
     protected void initLogic() {
-        quitButton.setOnLongClickListener(new View.OnLongClickListener() {
+        checkVersion();
+        DaemonHolder.startService();
+        getSecondDisplay();
+
+        RxView.clicks(button).throttleFirst(2, TimeUnit.SECONDS).compose(ObservableUtils.lifeCycle(MainActivity.this, ActivityEvent.DESTROY)).subscribe(unit -> {
+            if (qrCodeDialog != null && qrCodeDialog.isShowing()) {
+                qrCodeDialog.dismiss();
+                qrCodeDialog = null;
+            }
+            WxPayFace.getInstance().getWxpayfaceRawdata(new IWxPayfaceCallback() {
+                @Override
+                public void response(final Map info) throws RemoteException {
+                    if (info == null) {
+                        Toasty.error(self, "人脸识别初始化失败，请检查设备完整性").show();
+                        return;
+                    } else if (info.containsKey("rawdata")) {
+                        String rawdata = (String) info.get("rawdata");
+                        getWxAuthInfo(rawdata);
+                    } else {
+                        Toasty.error(self, (String) info.get("return_msg")).show();
+                    }
+                }
+            });
+        });
+        RxView.longClicks(quitButton).compose(ObservableUtils.lifeCycle(MainActivity.this, ActivityEvent.DESTROY)).subscribe(new Consumer<Unit>() {
             @Override
-            public boolean onLongClick(View view) {
+            public void accept(Unit unit) throws Exception {
                 AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
                 View dialogView = LayoutInflater.from(MainActivity.this).inflate(R.layout.dialog_password, null);
                 TextView cancel = dialogView.findViewById(R.id.choosepage_cancel);
@@ -125,7 +153,7 @@ public class MainActivity extends BaseActivity {
                 dialog.show();
                 Window dialogWindow = dialog.getWindow();
                 WindowManager.LayoutParams lp = dialogWindow.getAttributes();
-                lp.width = 500;
+                lp.width = 800;
                 dialogWindow.setAttributes(lp);
                 dialog.setCanceledOnTouchOutside(true);
                 dialogWindow.setContentView(dialogView);
@@ -151,13 +179,8 @@ public class MainActivity extends BaseActivity {
                         dialog.dismiss();
                     }
                 });
-
-                return true;
             }
         });
-        checkVersion();
-        DaemonHolder.startService();
-        getSecondDisplay();
     }
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
@@ -249,16 +272,20 @@ public class MainActivity extends BaseActivity {
     private void checkVersion() {
         Observable.interval(1, TimeUnit.SECONDS)
                 .filter(aLong -> {
-                    return canPing();//符合条件后就不在发送
+                    return Utils.canPing();//符合条件后就不在发送
                 }).take(1)
                 .compose(ObservableUtils.ioMain())
                 .compose(ObservableUtils.lifeCycle(MainActivity.this, ActivityEvent.DESTROY))
-                .delay(10, TimeUnit.SECONDS)
+                .delay(5, TimeUnit.SECONDS)
                 .subscribe(aLong -> VersionApi.getVersion().request(new SolveObserver<BaseEntity<Object>>(self) {
                     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
                     @Override
                     public void onSolve(BaseEntity<Object> response) {
                         VersionModel versionModel = new Gson().fromJson(new Gson().toJson(response.getData()), VersionModel.class);
+                        if(!StringUtils.isEmpty(versionModel.getBgImg()))
+                        {
+                            Glide.with(self).load(versionModel.getBgImg()).into(openIv);
+                        }
                         updateApk(versionModel);
                         updateAd(versionModel);
                     }
@@ -266,70 +293,17 @@ public class MainActivity extends BaseActivity {
 
     }
 
-    private boolean canPing() {
-        URL url = null;
-        try {
-            url = new URL(BuildConfig.SERVER_URL);
-            InputStream in = url.openStream();//打开到此 URL 的连接并返回一个用于从该连接读入的 InputStream
-            System.out.println("连接正常");
-            in.close();//关闭此输入流并释放与该流关联的所有系统资源。
-            return true;
-        } catch (IOException e) {
-            System.out.println("无法连接到：" + url.toString());
-        }
-        return false;
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         // TODO: add setContentView(...) invocation
         ButterKnife.bind(this);
-//        Toasty.success(self,AppUtils.isAppRoot()+"").show();
-    }
-
-    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
-    @OnClick(R.id.button)
-    public void onViewClicked() {
-
-        if (qrCodeDialog != null && qrCodeDialog.isShowing()) {
-            qrCodeDialog.dismiss();
-            qrCodeDialog = null;
-        }
-
-
-        WxPayFace.getInstance().getWxpayfaceRawdata(new IWxPayfaceCallback() {
-            @Override
-            public void response(final Map info) throws RemoteException {
-                if (info == null) {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            Toasty.error(self, "人脸识别初始化失败，请检查设备完整性").show();
-                        }
-                    });
-                    return;
-                } else {
-                    String rawdata = (String) info.get("rawdata");
-                    getWxAuthInfo(rawdata);
-                }
-            }
-        });
-
-
-//           ActivityManager am = (ActivityManager) self.getSystemService(Context.ACTIVITY_SERVICE);
-//            am.killBackgroundProcesses("com.tencent.wxpayface");
-//            Method forceStopPackage = am.getClass().getDeclaredMethod("forceStopPackage", String.class);
-//            forceStopPackage.setAccessible(true);
-//
-//        Log.d("MainActivity",App.getHub().getConnectionState().name());
-
-
     }
 
 
     private void updateApk(VersionModel versionModel) {
-        if (versionModel.getVersion() > getVersion()) {
+        if (versionModel.getVersion() > Utils.getVersion()) {
             if (AppUtils.isAppRoot()) {
                 AutoInstaller installer = new AutoInstaller.Builder(self)
                         .setMode(AutoInstaller.MODE.ROOT_ONLY)
@@ -338,30 +312,16 @@ public class MainActivity extends BaseActivity {
             } else {
                 (new Thread(new Runnable() {
                     public void run() {
-                        File file = downloadFile(versionModel.getUrl());
+                        File file = Utils.downloadFile(versionModel.getUrl());
                         try {
-                            if (file == null) {
-                                return;
-                            }
-                            Intent intent = new Intent(Intent.ACTION_VIEW);
-                            String type;
+                            AppUtils.installApp(self,file,"cn.csfz.paypoint.fileprovider");
 
-
-                            type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(FileUtils.getFileExtension(file));
-
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                                intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                                Uri contentUri = FileProvider.getUriForFile(self, "cn.csfz.paypoint.fileprovider", file);
-                                intent.setDataAndType(contentUri, type);
-                                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                                self.startActivity(intent);
-                            }
-                        }catch (Exception e)
-                        {
+//
+                        } catch (Exception e) {
                             runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
-                                    Toasty.error(self,"更新失败"+e.getMessage()).show();
+                                    Toasty.error(self, "更新失败" + e.getMessage()).show();
                                 }
                             });
                         }
@@ -373,61 +333,6 @@ public class MainActivity extends BaseActivity {
         }
     }
 
-    private File downloadFile(String httpUrl) {
-        if (TextUtils.isEmpty(httpUrl)) {
-            throw new IllegalArgumentException();
-        } else {
-            File file = new File(Environment.getExternalStorageDirectory().getAbsolutePath());
-            if (!file.exists()) {
-                file.mkdirs();
-            }
-
-            file = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + File.separator + "update.apk");
-            InputStream inputStream = null;
-            FileOutputStream outputStream = null;
-            HttpURLConnection connection = null;
-
-            try {
-                URL url = new URL(httpUrl);
-                connection = (HttpURLConnection) url.openConnection();
-                connection.setConnectTimeout(10000);
-                connection.setReadTimeout(10000);
-                connection.connect();
-                inputStream = connection.getInputStream();
-                outputStream = new FileOutputStream(file);
-                byte[] buffer = new byte[1024];
-                boolean var8 = false;
-
-                int len;
-                while ((len = inputStream.read(buffer)) > 0) {
-                    outputStream.write(buffer, 0, len);
-                }
-            } catch (Exception var17) {
-                var17.printStackTrace();
-            } finally {
-                try {
-                    if (inputStream != null) {
-                        inputStream.close();
-                    }
-
-                    if (outputStream != null) {
-                        outputStream.close();
-                    }
-
-                    if (connection != null) {
-                        connection.disconnect();
-                    }
-                } catch (IOException var16) {
-                    inputStream = null;
-                    outputStream = null;
-                }
-
-            }
-
-            return file;
-
-        }
-    }
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
     private void updateAd(VersionModel versionModel) {
@@ -436,19 +341,6 @@ public class MainActivity extends BaseActivity {
         }
     }
 
-    public int getVersion() {
-        PackageInfo pkg;
-        int versionCode = 0;
-        try {
-            pkg = self.getPackageManager().getPackageInfo(self.getApplication().getPackageName(), 0);
-            versionCode = pkg.versionCode;
-
-        } catch (PackageManager.NameNotFoundException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        return versionCode;
-    }
 
     private void openDoor() {
         if (!ActivityCollector.isActivityExist(OpenDoorActivity.class)) {
@@ -520,51 +412,5 @@ public class MainActivity extends BaseActivity {
         }
         unregisterReceiver(hubReceiver);
         super.onDestroy();
-    }
-
-
-    private void setDefaultLauncher() {
-        String packageName = "com.android.launcher3";    //默认launcher包名
-        String className = "com.android.launcher3.Launcher";    //默认launcher入口
-
-        PackageManager pm = self.getPackageManager();
-        //清除当前默认launcher
-        ArrayList<IntentFilter> intentList = new ArrayList<IntentFilter>();
-        ArrayList<ComponentName> cnList = new ArrayList<ComponentName>();
-        self.getPackageManager().getPreferredActivities(intentList, cnList, null);
-        IntentFilter dhIF = null;
-        for (int i = 0; i < cnList.size(); i++) {
-            dhIF = intentList.get(i);
-            if (dhIF.hasAction(Intent.ACTION_MAIN) && dhIF.hasCategory(Intent.CATEGORY_HOME)) {
-                self.getPackageManager().clearPackagePreferredActivities(cnList.get(i).getPackageName());
-            }
-        }
-        //获取所有launcher activity
-        Intent intent = new Intent(Intent.ACTION_MAIN);
-        intent.addCategory(Intent.CATEGORY_HOME);
-
-
-        List<ResolveInfo> list = pm.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY);
-
-
-        // get all components and the best match
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(Intent.ACTION_MAIN);
-        filter.addCategory(Intent.CATEGORY_HOME);
-        filter.addCategory(Intent.CATEGORY_DEFAULT);
-        final int N = list.size();
-        //设置默认launcher
-        ComponentName launcher = new ComponentName(packageName, className);
-        ComponentName[] set = new ComponentName[N];
-        int defaultMatch = 0;
-        for (int i = 0; i < N; i++) {
-            ResolveInfo r = list.get(i);
-            set[i] = new ComponentName(r.activityInfo.packageName, r.activityInfo.name);
-            if (launcher.getClassName().equals(r.activityInfo.name)) {
-                defaultMatch = r.match;
-            }
-        }
-        //将设置的默认launcher，添加到系统偏好
-        pm.addPreferredActivity(filter, defaultMatch, set, launcher);
     }
 }

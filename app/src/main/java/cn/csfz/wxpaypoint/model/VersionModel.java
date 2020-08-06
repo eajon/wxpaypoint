@@ -20,5 +20,6 @@ public class VersionModel {
     private int version;
     private String url;
     private int adVersion;
+    private String bgImg;
     private List<Video> videos;
 }

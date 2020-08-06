@@ -9,12 +9,14 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_gravity="center"
+        android:scaleType="fitXY"
         android:background="@mipmap/main_background" />
 
     <TextView
         android:id="@+id/button"
-        android:layout_width="200dp"
-        android:layout_height="200dp"
+        android:layout_margin="50dp"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:layout_centerInParent="true" />
 
 
