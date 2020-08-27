@@ -16,7 +16,9 @@ import com.microsoft.signalr.HubConnectionBuilder;
 import com.sunfusheng.daemon.DaemonHolder;
 import com.tencent.wxpayface.IWxPayfaceCallback;
 import com.tencent.wxpayface.WxPayFace;
+import com.umeng.analytics.MobclickAgent;
 import com.umeng.commonsdk.UMConfigure;
+import com.umeng.commonsdk.internal.crash.UMCrashManager;
 
 import java.io.File;
 import java.util.Map;
@@ -26,6 +28,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -43,15 +46,13 @@ public class App extends Application implements Thread.UncaughtExceptionHandler 
     private static Application self;
 
 
-
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Override
     public void onCreate() {
         super.onCreate();
         self = this;
-//        Thread.setDefaultUncaughtExceptionHandler(this);
+        Thread.setDefaultUncaughtExceptionHandler(this);
         UMConfigure.init(App.this, "5f1a8825d62dd10bc71bda16", "csfz", UMConfigure.DEVICE_TYPE_PHONE, null);
-
         OkHttpClient.Builder httpClient = new OkHttpClient.Builder()
                 .addNetworkInterceptor(new HttpLoggingInterceptor(new HttpLoggingInterceptor.Logger() {
                     @Override
@@ -63,7 +64,7 @@ public class App extends Application implements Thread.UncaughtExceptionHandler 
                 .connectTimeout(60, TimeUnit.SECONDS)
                 .readTimeout(60, TimeUnit.SECONDS)
                 .writeTimeout(60, TimeUnit.SECONDS)
-                .sslSocketFactory(sslSocketFactory(),x509TrustManager());
+                .sslSocketFactory(sslSocketFactory(), x509TrustManager());
 
         RxHttp.getConfig()
                 .baseUrl(BuildConfig.SERVER_URL)
@@ -80,6 +81,7 @@ public class App extends Application implements Thread.UncaughtExceptionHandler 
 
             }
         });
+
 
     }
 
@@ -98,8 +100,7 @@ public class App extends Application implements Thread.UncaughtExceptionHandler 
     }
 
     public static HubConnection getHub() {
-        if(hubConnection ==null)
-        {
+        if (hubConnection == null) {
             synchronized (App.class) {
                 if (hubConnection == null) {
                     String sn = Utils.getDeviceSN();
@@ -111,9 +112,9 @@ public class App extends Application implements Thread.UncaughtExceptionHandler 
         return hubConnection;
     }
 
-    public static void resetHub(){
+    public static void resetHub() {
         hubConnection.stop();
-        hubConnection =null;
+        hubConnection = null;
     }
 
 
@@ -121,10 +122,13 @@ public class App extends Application implements Thread.UncaughtExceptionHandler 
         return new HttpProxyCacheServer.Builder(self)
                 .maxCacheSize(1024 * 1024 * 1024)       // 1 Gb for cache
                 .build();
+
     }
 
     @Override
     public void uncaughtException(Thread thread, Throwable ex) {
+        MobclickAgent.reportError(self, ex);
+        Utils.saveCrashInfo2File(ex);
         Utils.restartAPP(self);
         System.exit(0);
     }

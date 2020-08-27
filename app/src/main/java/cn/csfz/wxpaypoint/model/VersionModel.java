@@ -21,5 +21,8 @@ public class VersionModel {
     private String url;
     private int adVersion;
     private String bgImg;
+    private String machineCode;
+    private String wxPayVersion;
+    private String wxPayUrl;
     private List<Video> videos;
 }

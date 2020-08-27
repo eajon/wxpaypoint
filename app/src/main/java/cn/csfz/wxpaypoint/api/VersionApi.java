@@ -12,7 +12,7 @@ public class VersionApi {
 
     public static RxHttp getVersion() {
         String sn = Utils.getDeviceSN();
-        VersionModel versionModel =new VersionModel();
+        VersionModel versionModel = new VersionModel();
         versionModel.setData(sn);
         return new RxHttp.Builder().post("/Visual/GetInitData").json(versionModel).build();
     }

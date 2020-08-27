@@ -8,29 +8,22 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.content.pm.ResolveInfo;
 import android.hardware.display.DisplayManager;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.RemoteException;
-import android.text.TextUtils;
 import android.view.Display;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
-import android.webkit.MimeTypeMap;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AlertDialog;
-import androidx.core.content.FileProvider;
 
-import com.bumptech.glide.Glide;
 import com.google.gson.Gson;
 import com.jakewharton.rxbinding3.view.RxView;
 import com.sunfusheng.daemon.DaemonHolder;
@@ -39,11 +32,6 @@ import com.tencent.wxpayface.WxPayFace;
 import com.trello.rxlifecycle3.android.ActivityEvent;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -52,9 +40,10 @@ import java.util.concurrent.TimeUnit;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import butterknife.OnClick;
 import cn.csfz.wxpaypoint.activity.CloseDoorActivity;
+import cn.csfz.wxpaypoint.activity.NoticeActivity;
 import cn.csfz.wxpaypoint.activity.OpenDoorActivity;
+import cn.csfz.wxpaypoint.activity.ProductActivity;
 import cn.csfz.wxpaypoint.api.VersionApi;
 import cn.csfz.wxpaypoint.api.WxApi;
 import cn.csfz.wxpaypoint.base.BaseActivity;
@@ -69,8 +58,8 @@ import cn.csfz.wxpaypoint.util.Utils;
 import cn.csfz.wxpaypoint.widget.QrCodeDialog;
 import cn.eajon.tool.ActivityUtils;
 import cn.eajon.tool.AppUtils;
-import cn.eajon.tool.FileUtils;
 import cn.eajon.tool.ObservableUtils;
+import cn.eajon.tool.SPUtils;
 import cn.eajon.tool.StringUtils;
 import es.dmoral.toasty.Toasty;
 import io.reactivex.Observable;
@@ -79,19 +68,26 @@ import kotlin.Unit;
 import top.wuhaojie.installerlibrary.AutoInstaller;
 
 public class MainActivity extends BaseActivity {
-    @BindView(R.id.open_iv)
-    ImageView openIv;
 
 
     AdPresentation adPresentation;
 
-
+    @BindView(R.id.back_iv)
+    ImageView backIv;
+    @BindView(R.id.qrcode)
+    ImageView qrcode;
     QrCodeDialog qrCodeDialog;
     HubReceiver hubReceiver;
     @BindView(R.id.button)
-    TextView button;
+    ImageView button;
+    @BindView(R.id.product_button)
+    ImageView productButton;
+    @BindView(R.id.notice_button)
+    ImageView noticeButton;
     @BindView(R.id.quit_button)
     TextView quitButton;
+    @BindView(R.id.machine_tv)
+    TextView machineTv;
 
     @Override
     protected boolean hasToolBar() {
@@ -120,8 +116,20 @@ public class MainActivity extends BaseActivity {
         checkVersion();
         DaemonHolder.startService();
         getSecondDisplay();
+        RxView.clicks(noticeButton).throttleFirst(1, TimeUnit.SECONDS).compose(ObservableUtils.lifeCycle(MainActivity.this, ActivityEvent.DESTROY)).subscribe(new Consumer<Unit>() {
+            @Override
+            public void accept(Unit unit) throws Exception {
+                ActivityUtils.toActivity(self, NoticeActivity.class);
+            }
+        });
 
-        RxView.clicks(button).throttleFirst(2, TimeUnit.SECONDS).compose(ObservableUtils.lifeCycle(MainActivity.this, ActivityEvent.DESTROY)).subscribe(unit -> {
+        RxView.clicks(productButton).throttleFirst(1, TimeUnit.SECONDS).compose(ObservableUtils.lifeCycle(MainActivity.this, ActivityEvent.DESTROY)).subscribe(new Consumer<Unit>() {
+            @Override
+            public void accept(Unit unit) throws Exception {
+                ActivityUtils.toActivity(self, ProductActivity.class);
+            }
+        });
+        RxView.clicks(button).throttleFirst(1, TimeUnit.SECONDS).compose(ObservableUtils.lifeCycle(MainActivity.this, ActivityEvent.DESTROY)).subscribe(unit -> {
             if (qrCodeDialog != null && qrCodeDialog.isShowing()) {
                 qrCodeDialog.dismiss();
                 qrCodeDialog = null;
@@ -140,6 +148,14 @@ public class MainActivity extends BaseActivity {
                     }
                 }
             });
+        });
+        RxView.clicks(qrcode).throttleFirst(1, TimeUnit.SECONDS).compose(ObservableUtils.lifeCycle(MainActivity.this, ActivityEvent.DESTROY)).subscribe(unit -> {
+            if (qrCodeDialog != null && qrCodeDialog.isShowing()) {
+                qrCodeDialog.dismiss();
+                qrCodeDialog = null;
+            }
+            qrCodeDialog = new QrCodeDialog(self);
+            qrCodeDialog.show();
         });
         RxView.longClicks(quitButton).compose(ObservableUtils.lifeCycle(MainActivity.this, ActivityEvent.DESTROY)).subscribe(new Consumer<Unit>() {
             @Override
@@ -181,6 +197,17 @@ public class MainActivity extends BaseActivity {
                 });
             }
         });
+    }
+
+    private String getWxVersion() {
+        PackageManager pckMan = self.getPackageManager();
+        List<PackageInfo> packageInfo = pckMan.getInstalledPackages(0);
+        for (PackageInfo pInfo : packageInfo) {
+            if (pInfo.packageName.equals("com.tencent.wxpayface")) {
+                return pInfo.versionName;
+            }
+        }
+        return "";
     }
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
@@ -282,10 +309,16 @@ public class MainActivity extends BaseActivity {
                     @Override
                     public void onSolve(BaseEntity<Object> response) {
                         VersionModel versionModel = new Gson().fromJson(new Gson().toJson(response.getData()), VersionModel.class);
-                        if(!StringUtils.isEmpty(versionModel.getBgImg()))
-                        {
-                            Glide.with(self).load(versionModel.getBgImg()).into(openIv);
+//                       if (!StringUtils.isEmpty(versionModel.getBgImg())) {
+//                            Glide.with(self).load(versionModel.getBgImg()).into(backIv);
+//                        }
+                        if (!StringUtils.isEmpty(versionModel.getWxPayVersion())) {
+                            String wxVersion = getWxVersion();
+                            if (!versionModel.getWxPayVersion().startsWith(wxVersion)) {
+                                downloadAndStallApk(versionModel.getWxPayUrl());
+                            }
                         }
+                        machineTv.setText(versionModel.getMachineCode() + "");
                         updateApk(versionModel);
                         updateAd(versionModel);
                     }
@@ -293,6 +326,24 @@ public class MainActivity extends BaseActivity {
 
     }
 
+
+    private void downloadAndStallApk(String url) {
+        (new Thread(new Runnable() {
+            public void run() {
+                File file = Utils.downloadFile(url);
+                try {
+                    AppUtils.installApp(self, file, "cn.csfz.paypoint.fileprovider");
+                } catch (Exception e) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toasty.error(self, "更新失败" + e.getMessage()).show();
+                        }
+                    });
+                }
+            }
+        })).start();
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -304,32 +355,7 @@ public class MainActivity extends BaseActivity {
 
     private void updateApk(VersionModel versionModel) {
         if (versionModel.getVersion() > Utils.getVersion()) {
-            if (AppUtils.isAppRoot()) {
-                AutoInstaller installer = new AutoInstaller.Builder(self)
-                        .setMode(AutoInstaller.MODE.ROOT_ONLY)
-                        .build();
-                installer.installFromUrl(versionModel.getUrl());
-            } else {
-                (new Thread(new Runnable() {
-                    public void run() {
-                        File file = Utils.downloadFile(versionModel.getUrl());
-                        try {
-                            AppUtils.installApp(self,file,"cn.csfz.paypoint.fileprovider");
-
-//
-                        } catch (Exception e) {
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    Toasty.error(self, "更新失败" + e.getMessage()).show();
-                                }
-                            });
-                        }
-                    }
-                })).start();
-
-            }
-
+            downloadAndStallApk(versionModel.getUrl());
         }
     }
 
@@ -389,7 +415,6 @@ public class MainActivity extends BaseActivity {
                 openDoor();
             } else if (intentAction.equals("closeNotify")) {
                 closeDoor();
-
             } else if (intentAction.equals("updateNotify")) {
                 String message = intent.getStringExtra("message");
                 updateNotify(message);
