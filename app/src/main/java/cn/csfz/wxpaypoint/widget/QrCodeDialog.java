@@ -20,8 +20,9 @@ import cn.csfz.wxpaypoint.util.Utils;
 public class QrCodeDialog extends Dialog {
 
     private Context mContext;
-    private String url = "https://alipay.vendor.cxwos.com/?machineCode=";
+    private String url = "  https://vendor.cxwos.com/?machineCode=";
     private TextView textView;
+    private String machineCode;
 
     public QrCodeDialog(Context context, boolean cancelable, OnCancelListener cancelListener) {
         super(context, cancelable, cancelListener);
@@ -33,9 +34,10 @@ public class QrCodeDialog extends Dialog {
         this.mContext = context;
     }
 
-    public QrCodeDialog(Context context) {
+    public QrCodeDialog(Context context,String machineCode) {
         super(context);
         this.mContext = context;
+        this.machineCode =machineCode;
     }
 
     @Override
@@ -44,8 +46,7 @@ public class QrCodeDialog extends Dialog {
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.dialog_qrcode);
         ImageView qrImage = findViewById(R.id.qrcode_image);
-        String sn = Utils.getDeviceSN();
-        qrImage.setImageBitmap(QRCodeUtil.createQRCodeBitmap(url + sn, dpToPx(this.getContext(), 200), dpToPx(this.getContext(), 200)));
+        qrImage.setImageBitmap(QRCodeUtil.createQRCode(mContext,url + machineCode, dpToPx(this.getContext(), 200), dpToPx(this.getContext(), 200),R.mipmap.fp_logo));
         Window dialogWindow = this.getWindow();
         WindowManager.LayoutParams lp = dialogWindow.getAttributes();
         lp.width = dpToPx(this.getContext(), 280);

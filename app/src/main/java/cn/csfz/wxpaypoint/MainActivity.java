@@ -32,7 +32,6 @@ import com.tencent.wxpayface.WxPayFace;
 import com.trello.rxlifecycle3.android.ActivityEvent;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,13 +58,12 @@ import cn.csfz.wxpaypoint.widget.QrCodeDialog;
 import cn.eajon.tool.ActivityUtils;
 import cn.eajon.tool.AppUtils;
 import cn.eajon.tool.ObservableUtils;
-import cn.eajon.tool.SPUtils;
+import cn.eajon.tool.ShellUtils;
 import cn.eajon.tool.StringUtils;
 import es.dmoral.toasty.Toasty;
 import io.reactivex.Observable;
 import io.reactivex.functions.Consumer;
 import kotlin.Unit;
-import top.wuhaojie.installerlibrary.AutoInstaller;
 
 public class MainActivity extends BaseActivity {
 
@@ -116,19 +114,9 @@ public class MainActivity extends BaseActivity {
         checkVersion();
         DaemonHolder.startService();
         getSecondDisplay();
-        RxView.clicks(noticeButton).throttleFirst(1, TimeUnit.SECONDS).compose(ObservableUtils.lifeCycle(MainActivity.this, ActivityEvent.DESTROY)).subscribe(new Consumer<Unit>() {
-            @Override
-            public void accept(Unit unit) throws Exception {
-                ActivityUtils.toActivity(self, NoticeActivity.class);
-            }
-        });
+        RxView.clicks(noticeButton).throttleFirst(1, TimeUnit.SECONDS).compose(ObservableUtils.lifeCycle(MainActivity.this, ActivityEvent.DESTROY)).subscribe(unit -> ActivityUtils.toActivity(self, NoticeActivity.class));
 
-        RxView.clicks(productButton).throttleFirst(1, TimeUnit.SECONDS).compose(ObservableUtils.lifeCycle(MainActivity.this, ActivityEvent.DESTROY)).subscribe(new Consumer<Unit>() {
-            @Override
-            public void accept(Unit unit) throws Exception {
-                ActivityUtils.toActivity(self, ProductActivity.class);
-            }
-        });
+        RxView.clicks(productButton).throttleFirst(1, TimeUnit.SECONDS).compose(ObservableUtils.lifeCycle(MainActivity.this, ActivityEvent.DESTROY)).subscribe(unit -> ActivityUtils.toActivity(self, ProductActivity.class));
         RxView.clicks(button).throttleFirst(1, TimeUnit.SECONDS).compose(ObservableUtils.lifeCycle(MainActivity.this, ActivityEvent.DESTROY)).subscribe(unit -> {
             if (qrCodeDialog != null && qrCodeDialog.isShowing()) {
                 qrCodeDialog.dismiss();
@@ -154,48 +142,51 @@ public class MainActivity extends BaseActivity {
                 qrCodeDialog.dismiss();
                 qrCodeDialog = null;
             }
-            qrCodeDialog = new QrCodeDialog(self);
-            qrCodeDialog.show();
-        });
-        RxView.longClicks(quitButton).compose(ObservableUtils.lifeCycle(MainActivity.this, ActivityEvent.DESTROY)).subscribe(new Consumer<Unit>() {
-            @Override
-            public void accept(Unit unit) throws Exception {
-                AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-                View dialogView = LayoutInflater.from(MainActivity.this).inflate(R.layout.dialog_password, null);
-                TextView cancel = dialogView.findViewById(R.id.choosepage_cancel);
-                TextView sure = dialogView.findViewById(R.id.choosepage_sure);
-                final EditText edittext = dialogView.findViewById(R.id.choosepage_edittext);
-                final Dialog dialog = builder.create();
-                dialog.show();
-                Window dialogWindow = dialog.getWindow();
-                WindowManager.LayoutParams lp = dialogWindow.getAttributes();
-                lp.width = 800;
-                dialogWindow.setAttributes(lp);
-                dialog.setCanceledOnTouchOutside(true);
-                dialogWindow.setContentView(dialogView);
-                //使editext可以唤起软键盘
-                dialogWindow.clearFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM);
-                cancel.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        dialog.dismiss();
-                    }
-                });
-                sure.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        if (edittext.getText().toString().equals("963214")) {
-                            Intent paramIntent = new Intent("android.intent.action.MAIN");
-                            paramIntent.setComponent(new ComponentName("android", "com.android.internal.app.ResolverActivity"));
-                            paramIntent.addCategory("android.intent.category.DEFAULT");
-                            paramIntent.addCategory("android.intent.category.HOME");
-                            self.startActivity(paramIntent);
-
-                        }
-                        dialog.dismiss();
-                    }
-                });
+            String machineCode =machineTv.getText().toString();
+            if(!StringUtils.isEmpty(machineCode)) {
+                qrCodeDialog = new QrCodeDialog(self, machineCode);
+                qrCodeDialog.show();
+            }else
+            {
+                Toasty.error(self,"无网络或者设备号获取中！(1)").show();
             }
+        });
+        RxView.longClicks(quitButton).compose(ObservableUtils.lifeCycle(MainActivity.this, ActivityEvent.DESTROY)).subscribe(unit -> {
+            AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+            View dialogView = LayoutInflater.from(MainActivity.this).inflate(R.layout.dialog_password, null);
+            TextView cancel = dialogView.findViewById(R.id.choosepage_cancel);
+            TextView sure = dialogView.findViewById(R.id.choosepage_sure);
+            final EditText edittext = dialogView.findViewById(R.id.choosepage_edittext);
+            final Dialog dialog = builder.create();
+            dialog.show();
+            Window dialogWindow = dialog.getWindow();
+            WindowManager.LayoutParams lp = dialogWindow.getAttributes();
+            lp.width = 800;
+            dialogWindow.setAttributes(lp);
+            dialog.setCanceledOnTouchOutside(true);
+            dialogWindow.setContentView(dialogView);
+            //使editext可以唤起软键盘
+            dialogWindow.clearFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM);
+            cancel.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    dialog.dismiss();
+                }
+            });
+            sure.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (edittext.getText().toString().equals("963214")) {
+                        Intent paramIntent = new Intent("android.intent.action.MAIN");
+                        paramIntent.setComponent(new ComponentName("android", "com.android.internal.app.ResolverActivity"));
+                        paramIntent.addCategory("android.intent.category.DEFAULT");
+                        paramIntent.addCategory("android.intent.category.HOME");
+                        self.startActivity(paramIntent);
+
+                    }
+                    dialog.dismiss();
+                }
+            });
         });
     }
 
@@ -260,8 +251,14 @@ public class MainActivity extends BaseActivity {
                                 runOnUiThread(new Runnable() {
                                     @Override
                                     public void run() {
-                                        qrCodeDialog = new QrCodeDialog(self);
-                                        qrCodeDialog.show();
+                                        String machineCode =machineTv.getText().toString();
+                                        if(!StringUtils.isEmpty(machineCode)) {
+                                            qrCodeDialog = new QrCodeDialog(self, machineCode);
+                                            qrCodeDialog.show();
+                                        }else
+                                        {
+                                            Toasty.error(self,"无网络或者设备号获取中！(1)").show();
+                                        }
                                     }
                                 });
                                 return;
@@ -277,9 +274,15 @@ public class MainActivity extends BaseActivity {
                                                     ActivityUtils.toActivity(self, OpenDoorActivity.class);
                                                 }
                                             } else {
-                                                qrCodeDialog = new QrCodeDialog(self);
-                                                qrCodeDialog.show();
-                                                qrCodeDialog.setMessage(order.getMessage());
+                                                String machineCode =machineTv.getText().toString();
+                                                if(!StringUtils.isEmpty(machineCode)) {
+                                                    qrCodeDialog = new QrCodeDialog(self, machineCode);
+                                                    qrCodeDialog.show();
+                                                    qrCodeDialog.setMessage(order.getMessage());
+                                                }else
+                                                {
+                                                    Toasty.error(self,"无网络或者设备号获取中！(1)").show();
+                                                }
                                             }
                                         }
                                     }
