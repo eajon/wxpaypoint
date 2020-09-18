@@ -2,6 +2,8 @@ package cn.csfz.wxpaypoint.widget;
 
 import android.app.Dialog;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
 import android.view.View;
 import android.view.Window;
@@ -14,6 +16,7 @@ import java.util.TimerTask;
 
 import cn.csfz.wxpaypoint.R;
 import cn.csfz.wxpaypoint.util.QRCodeUtil;
+import cn.csfz.wxpaypoint.util.QrCodeUtil2;
 import cn.csfz.wxpaypoint.util.Utils;
 
 
@@ -46,7 +49,9 @@ public class QrCodeDialog extends Dialog {
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.dialog_qrcode);
         ImageView qrImage = findViewById(R.id.qrcode_image);
-        qrImage.setImageBitmap(QRCodeUtil.createQRCode(mContext,url + machineCode, dpToPx(this.getContext(), 200), dpToPx(this.getContext(), 200),R.mipmap.fp_logo));
+        BitmapDrawable bd = (BitmapDrawable) mContext.getResources().getDrawable(R.mipmap.fp_logo);
+        Bitmap logoBitMap = bd.getBitmap();
+        qrImage.setImageBitmap(QrCodeUtil2.writeQRImage(url + machineCode, dpToPx(this.getContext(), 200), dpToPx(this.getContext(), 200),logoBitMap,0));
         Window dialogWindow = this.getWindow();
         WindowManager.LayoutParams lp = dialogWindow.getAttributes();
         lp.width = dpToPx(this.getContext(), 280);
