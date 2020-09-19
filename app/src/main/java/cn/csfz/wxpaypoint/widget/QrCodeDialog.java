@@ -51,7 +51,7 @@ public class QrCodeDialog extends Dialog {
         ImageView qrImage = findViewById(R.id.qrcode_image);
         BitmapDrawable bd = (BitmapDrawable) mContext.getResources().getDrawable(R.mipmap.fp_logo);
         Bitmap logoBitMap = bd.getBitmap();
-        qrImage.setImageBitmap(QrCodeUtil2.writeQRImage(url + machineCode, dpToPx(this.getContext(), 200), dpToPx(this.getContext(), 200),logoBitMap,0));
+        qrImage.setImageBitmap(QRCodeUtil.createQRCodeBitmap(url + machineCode, dpToPx(this.getContext(), 200), logoBitMap,0.2F));
         Window dialogWindow = this.getWindow();
         WindowManager.LayoutParams lp = dialogWindow.getAttributes();
         lp.width = dpToPx(this.getContext(), 280);

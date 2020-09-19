@@ -11,6 +11,7 @@ import butterknife.ButterKnife;
 import cn.csfz.wxpaypoint.R;
 import cn.csfz.wxpaypoint.base.BaseActivity;
 import cn.csfz.wxpaypoint.util.Utils;
+import cn.eajon.tool.SPUtils;
 import me.jingbin.progress.WebProgress;
 
 /**
@@ -67,8 +68,8 @@ public class NoticeActivity extends BaseActivity {
         webSettings.setAllowFileAccess(true);
         webSettings.setLayoutAlgorithm(WebSettings.LayoutAlgorithm.NORMAL);
         webSettings.setLoadWithOverviewMode(true);
-        String sn = Utils.getDeviceSN();
-        webView.loadUrl("http://alipay.vendor.cxwos.com/#/about?machineCode=" + sn);
+        String machineCode = SPUtils.getData("machineCode",String.class);
+        webView.loadUrl("http://alipay.vendor.cxwos.com/#/about?machineCode=" + machineCode);
         progress.show();
 
     }

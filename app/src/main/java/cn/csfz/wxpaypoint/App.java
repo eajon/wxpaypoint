@@ -37,6 +37,7 @@ import java.security.cert.X509Certificate;
 
 import cn.csfz.wxpaypoint.util.Utils;
 import cn.eajon.tool.LogUtils;
+import cn.eajon.tool.SPUtils;
 import okhttp3.OkHttpClient;
 import okhttp3.logging.HttpLoggingInterceptor;
 
@@ -103,8 +104,8 @@ public class App extends Application implements Thread.UncaughtExceptionHandler 
         if (hubConnection == null) {
             synchronized (App.class) {
                 if (hubConnection == null) {
-                    String sn = Utils.getDeviceSN();
-                    hubConnection = HubConnectionBuilder.create("http://websocket.vendor.cxwos.com/websocket/MachineHub?userId=" + sn + "&machineId=" + sn).build();
+                    String machineCode = SPUtils.getData("machineCode",String.class);
+                    hubConnection = HubConnectionBuilder.create("http://websocket.vendor.cxwos.com/websocket/MachineHub?userId=" + machineCode + "&machineId=" + machineCode).build();
 
                 }
             }

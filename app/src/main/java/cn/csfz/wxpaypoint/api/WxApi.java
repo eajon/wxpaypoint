@@ -6,6 +6,7 @@ import cn.csfz.wxpaypoint.model.FaceInfo;
 import cn.csfz.wxpaypoint.model.RawData;
 import cn.csfz.wxpaypoint.util.Utils;
 import cn.eajon.tool.DeviceUtils;
+import cn.eajon.tool.SPUtils;
 
 public class WxApi {
 
@@ -17,7 +18,7 @@ public class WxApi {
     {
         RawData rawData =new RawData();
         rawData.setRawdata(data);
-        rawData.setDevice_id(Utils.getDeviceSN());
+        rawData.setDevice_id(SPUtils.getData("machineCode",String.class));
         return new RxHttp.Builder().post("/Visual/GetWxPayFaceAuthinfo").json(rawData).build();
     }
 
@@ -27,8 +28,7 @@ public class WxApi {
         faceInfo.setFace_sid(faceSid);
         faceInfo.setOpen_id(openId);
         faceInfo.setOut_trade_no(outTradeNo);
-        String macAddress = DeviceUtils.getMacAddress().replaceAll(":","_");
-        faceInfo.setDevice_id(macAddress);
+        faceInfo.setDevice_id(SPUtils.getData("machineCode",String.class));
         return new RxHttp.Builder().post("/WeChatPay/GetWxPayFaceUnionId").json(faceInfo).build();
     }
 
@@ -38,7 +38,7 @@ public class WxApi {
         faceInfo.setFace_sid(faceSid);
         faceInfo.setOpen_id(openId);
         faceInfo.setOut_trade_no(outTradeNo);
-        faceInfo.setDevice_id(Utils.getDeviceSN());
+        faceInfo.setDevice_id(SPUtils.getData("machineCode",String.class));
         return new RxHttp.Builder().post("Visual/CreatWxPayFaceOrder").json(faceInfo).build();
     }
 

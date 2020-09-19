@@ -58,6 +58,7 @@ import cn.csfz.wxpaypoint.widget.QrCodeDialog;
 import cn.eajon.tool.ActivityUtils;
 import cn.eajon.tool.AppUtils;
 import cn.eajon.tool.ObservableUtils;
+import cn.eajon.tool.SPUtils;
 import cn.eajon.tool.ShellUtils;
 import cn.eajon.tool.StringUtils;
 import es.dmoral.toasty.Toasty;
@@ -142,7 +143,7 @@ public class MainActivity extends BaseActivity {
                 qrCodeDialog.dismiss();
                 qrCodeDialog = null;
             }
-            String machineCode =machineTv.getText().toString();
+            String machineCode =SPUtils.getData("machineCode",String.class);
             if(!StringUtils.isEmpty(machineCode)) {
                 qrCodeDialog = new QrCodeDialog(self, machineCode);
                 qrCodeDialog.show();
@@ -251,7 +252,7 @@ public class MainActivity extends BaseActivity {
                                 runOnUiThread(new Runnable() {
                                     @Override
                                     public void run() {
-                                        String machineCode =machineTv.getText().toString();
+                                        String machineCode =SPUtils.getData("machineCode",String.class);
                                         if(!StringUtils.isEmpty(machineCode)) {
                                             qrCodeDialog = new QrCodeDialog(self, machineCode);
                                             qrCodeDialog.show();
@@ -274,7 +275,7 @@ public class MainActivity extends BaseActivity {
                                                     ActivityUtils.toActivity(self, OpenDoorActivity.class);
                                                 }
                                             } else {
-                                                String machineCode =machineTv.getText().toString();
+                                                String machineCode =SPUtils.getData("machineCode",String.class);
                                                 if(!StringUtils.isEmpty(machineCode)) {
                                                     qrCodeDialog = new QrCodeDialog(self, machineCode);
                                                     qrCodeDialog.show();
@@ -306,12 +307,13 @@ public class MainActivity extends BaseActivity {
                 }).take(1)
                 .compose(ObservableUtils.ioMain())
                 .compose(ObservableUtils.lifeCycle(MainActivity.this, ActivityEvent.DESTROY))
-                .delay(5, TimeUnit.SECONDS)
+                .delay(2, TimeUnit.SECONDS)
                 .subscribe(aLong -> VersionApi.getVersion().request(new SolveObserver<BaseEntity<Object>>(self) {
                     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
                     @Override
                     public void onSolve(BaseEntity<Object> response) {
                         VersionModel versionModel = new Gson().fromJson(new Gson().toJson(response.getData()), VersionModel.class);
+                        SPUtils.putData("machineCode",versionModel.getMachineCode());
 //                       if (!StringUtils.isEmpty(versionModel.getBgImg())) {
 //                            Glide.with(self).load(versionModel.getBgImg()).into(backIv);
 //                        }
