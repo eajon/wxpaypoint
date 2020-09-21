@@ -19,13 +19,25 @@
             android:textColor="@android:color/white"
             android:textSize="20dp" />
     </LinearLayout>
+    <RelativeLayout
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        android:layout_gravity="center">
+
 
     <ImageView
         android:id="@+id/qrcode_image"
         android:layout_width="200dp"
         android:layout_height="200dp"
-        android:layout_gravity="center"
-        android:layout_margin="20dp" />
+        android:layout_margin="20dp"
+        android:layout_centerInParent="true"/>
+
+        <ImageView
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@mipmap/fp_logo"
+            android:layout_centerInParent="true"/>
+    </RelativeLayout>
 
     <TextView
         android:id="@+id/message_text"

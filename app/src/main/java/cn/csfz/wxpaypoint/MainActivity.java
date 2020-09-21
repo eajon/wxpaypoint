@@ -314,15 +314,13 @@ public class MainActivity extends BaseActivity {
                     public void onSolve(BaseEntity<Object> response) {
                         VersionModel versionModel = new Gson().fromJson(new Gson().toJson(response.getData()), VersionModel.class);
                         SPUtils.putData("machineCode",versionModel.getMachineCode());
-//                       if (!StringUtils.isEmpty(versionModel.getBgImg())) {
-//                            Glide.with(self).load(versionModel.getBgImg()).into(backIv);
-//                        }
                         if (!StringUtils.isEmpty(versionModel.getWxPayVersion())) {
                             String wxVersion = getWxVersion();
                             if (!versionModel.getWxPayVersion().startsWith(wxVersion)) {
                                 downloadAndStallApk(versionModel.getWxPayUrl());
                             }
                         }
+                        App.resetHub();
                         machineTv.setText(versionModel.getMachineCode() + "");
                         updateApk(versionModel);
                         updateAd(versionModel);

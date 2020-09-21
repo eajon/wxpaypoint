@@ -67,7 +67,6 @@ public class HeartBeatService extends AbsHeartBeatService {
             index++;
         }
         Log.d(TAG, "onHeartBeat()");
-        Log.d(TAG, App.getHub().getConnectionState().name());
         startHub();
 
         if (!ActivityCollector.isActivityExist(MainActivity.class)) {
