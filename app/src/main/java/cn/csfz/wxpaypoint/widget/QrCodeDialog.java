@@ -11,6 +11,8 @@ import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.bumptech.glide.Glide;
+
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -25,7 +27,7 @@ public class QrCodeDialog extends Dialog {
     private Context mContext;
     private String url = "  https://vendor.cxwos.com/?machineCode=";
     private TextView textView;
-    private String machineCode;
+    private String qrImg;
 
     public QrCodeDialog(Context context, boolean cancelable, OnCancelListener cancelListener) {
         super(context, cancelable, cancelListener);
@@ -37,10 +39,10 @@ public class QrCodeDialog extends Dialog {
         this.mContext = context;
     }
 
-    public QrCodeDialog(Context context,String machineCode) {
+    public QrCodeDialog(Context context,String qrImg) {
         super(context);
         this.mContext = context;
-        this.machineCode =machineCode;
+        this.qrImg =qrImg;
     }
 
     @Override
@@ -49,9 +51,9 @@ public class QrCodeDialog extends Dialog {
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.dialog_qrcode);
         ImageView qrImage = findViewById(R.id.qrcode_image);
-        BitmapDrawable bd = (BitmapDrawable) mContext.getResources().getDrawable(R.mipmap.fp_logo);
-        Bitmap logoBitMap = bd.getBitmap();
-        qrImage.setImageBitmap(QRCodeUtil.createQRCodeBitmap(url + machineCode, dpToPx(this.getContext(), 200)));
+//        BitmapDrawable bd = (BitmapDrawable) mContext.getResources().getDrawable(R.mipmap.fp_logo);
+//        Bitmap logoBitMap = bd.getBitmap();
+        Glide.with(mContext).load(qrImg).into(qrImage);
         Window dialogWindow = this.getWindow();
         WindowManager.LayoutParams lp = dialogWindow.getAttributes();
         lp.width = dpToPx(this.getContext(), 280);

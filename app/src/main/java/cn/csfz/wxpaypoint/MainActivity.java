@@ -143,13 +143,12 @@ public class MainActivity extends BaseActivity {
                 qrCodeDialog.dismiss();
                 qrCodeDialog = null;
             }
-            String machineCode =SPUtils.getData("machineCode",String.class);
-            if(!StringUtils.isEmpty(machineCode)) {
-                qrCodeDialog = new QrCodeDialog(self, machineCode);
+            String qrImg = SPUtils.getData("qrImg", String.class);
+            if (!StringUtils.isEmpty(qrImg)) {
+                qrCodeDialog = new QrCodeDialog(self, qrImg);
                 qrCodeDialog.show();
-            }else
-            {
-                Toasty.error(self,"无网络或者设备号获取中！(1)").show();
+            } else {
+                Toasty.error(self, "无网络或者设备号获取中！(1)").show();
             }
         });
         RxView.longClicks(quitButton).compose(ObservableUtils.lifeCycle(MainActivity.this, ActivityEvent.DESTROY)).subscribe(unit -> {
@@ -252,13 +251,12 @@ public class MainActivity extends BaseActivity {
                                 runOnUiThread(new Runnable() {
                                     @Override
                                     public void run() {
-                                        String machineCode =SPUtils.getData("machineCode",String.class);
-                                        if(!StringUtils.isEmpty(machineCode)) {
-                                            qrCodeDialog = new QrCodeDialog(self, machineCode);
+                                        String qrImg = SPUtils.getData("qrImg", String.class);
+                                        if (!StringUtils.isEmpty(qrImg)) {
+                                            qrCodeDialog = new QrCodeDialog(self, qrImg);
                                             qrCodeDialog.show();
-                                        }else
-                                        {
-                                            Toasty.error(self,"无网络或者设备号获取中！(1)").show();
+                                        } else {
+                                            Toasty.error(self, "无网络或者设备号获取中！(1)").show();
                                         }
                                     }
                                 });
@@ -275,14 +273,13 @@ public class MainActivity extends BaseActivity {
                                                     ActivityUtils.toActivity(self, OpenDoorActivity.class);
                                                 }
                                             } else {
-                                                String machineCode =SPUtils.getData("machineCode",String.class);
-                                                if(!StringUtils.isEmpty(machineCode)) {
-                                                    qrCodeDialog = new QrCodeDialog(self, machineCode);
+                                                String qrImg = SPUtils.getData("qrImg", String.class);
+                                                if (!StringUtils.isEmpty(qrImg)) {
+                                                    qrCodeDialog = new QrCodeDialog(self, qrImg);
                                                     qrCodeDialog.show();
                                                     qrCodeDialog.setMessage(order.getMessage());
-                                                }else
-                                                {
-                                                    Toasty.error(self,"无网络或者设备号获取中！(1)").show();
+                                                } else {
+                                                    Toasty.error(self, "无网络或者设备号获取中！(1)").show();
                                                 }
                                             }
                                         }
@@ -313,7 +310,8 @@ public class MainActivity extends BaseActivity {
                     @Override
                     public void onSolve(BaseEntity<Object> response) {
                         VersionModel versionModel = new Gson().fromJson(new Gson().toJson(response.getData()), VersionModel.class);
-                        SPUtils.putData("machineCode",versionModel.getMachineCode());
+                        SPUtils.putData("machineCode", versionModel.getMachineCode());
+                        SPUtils.putData("qrImg", versionModel.getQrImg());
                         if (!StringUtils.isEmpty(versionModel.getWxPayVersion())) {
                             String wxVersion = getWxVersion();
                             if (!versionModel.getWxPayVersion().startsWith(wxVersion)) {
@@ -351,7 +349,6 @@ public class MainActivity extends BaseActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // TODO: add setContentView(...) invocation
         ButterKnife.bind(this);
     }
 
@@ -388,12 +385,7 @@ public class MainActivity extends BaseActivity {
     }
 
     private void updateNotify(String message) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                Toasty.normal(self, "开始更新").show();
-            }
-        });
+        runOnUiThread(() -> Toasty.normal(self, "开始更新").show());
         VersionModel versionModel = new Gson().fromJson(message, VersionModel.class);
         updateApk(versionModel);
     }
@@ -430,7 +422,7 @@ public class MainActivity extends BaseActivity {
 
     @Override
     protected void onDestroy() {
-        if (adPresentation != null) {
+        if (adPresentation != null && adPresentation.isShowing()) {
             adPresentation.dismiss();
             adPresentation = null;
         }

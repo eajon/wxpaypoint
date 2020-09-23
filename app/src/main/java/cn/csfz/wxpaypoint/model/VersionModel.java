@@ -24,5 +24,6 @@ public class VersionModel {
     private String machineCode;
     private String wxPayVersion;
     private String wxPayUrl;
+    private String qrImg;
     private List<Video> videos;
 }
