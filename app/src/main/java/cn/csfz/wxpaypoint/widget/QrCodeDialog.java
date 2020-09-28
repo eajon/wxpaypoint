@@ -12,6 +12,8 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.request.RequestOptions;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -53,7 +55,10 @@ public class QrCodeDialog extends Dialog {
         ImageView qrImage = findViewById(R.id.qrcode_image);
 //        BitmapDrawable bd = (BitmapDrawable) mContext.getResources().getDrawable(R.mipmap.fp_logo);
 //        Bitmap logoBitMap = bd.getBitmap();
-        Glide.with(mContext).load(qrImg).into(qrImage);
+        String updateTime = String.valueOf(System.currentTimeMillis());
+        Glide.with(mContext).load(qrImg).apply(new RequestOptions()).skipMemoryCache(true) // 不使用内存缓存
+                .diskCacheStrategy(DiskCacheStrategy.NONE) // 不使用磁盘缓存
+                .into(qrImage);
         Window dialogWindow = this.getWindow();
         WindowManager.LayoutParams lp = dialogWindow.getAttributes();
         lp.width = dpToPx(this.getContext(), 280);
