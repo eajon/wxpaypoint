@@ -101,6 +101,7 @@ public class AdPresentation extends Presentation {
             @Override
             public boolean onError(MediaPlayer mp, int what, int extra) {
                 videoView.stopPlayback(); //播放异常，则停止播放，防止弹窗使界面阻塞
+                startVideos();
                 return true;
             }
         });
@@ -129,18 +130,18 @@ public class AdPresentation extends Presentation {
      */
     private void startVideos() {
         if (videoPaths.get(index).getType() == 0) {
-            videoImage.setVisibility(View.VISIBLE);
+            videoImage.setVisibility(View.GONE);
             videoView.setVisibility(View.VISIBLE);
             if (!StringUtils.isEmpty(videoPaths.get(index).getUrl())) {
                 HttpProxyCacheServer proxy = App.getProxy(App.getContext());
                 String proxyUrl = proxy.getProxyUrl(videoPaths.get(index).getUrl());
-                try {
-                    if (proxyUrl.toLowerCase().startsWith("file://")) {
-                        videoImage.setImageBitmap(getVideoOne(App.getContext(), proxyUrl));
-                    }
-                } catch (Exception e) {
-                    LogUtils.e(e.getMessage());
-                }
+//                try {
+//                    if (proxyUrl.toLowerCase().startsWith("file://")) {
+//                        videoImage.setImageBitmap(getVideoOne(App.getContext(), proxyUrl));
+//                    }
+//                } catch (Exception e) {
+//                    LogUtils.e(e.getMessage());
+//                }
                 videoView.setVideoPath(proxyUrl);
                 videoView.start();
             } else {

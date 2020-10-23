@@ -14,6 +14,7 @@ public class VersionApi {
         String sn = Utils.getDeviceSN();
         VersionModel versionModel = new VersionModel();
         versionModel.setData(sn);
+//        versionModel.setData("SYAW2MAIDUO7HAOJI000063");
         return new RxHttp.Builder().post("/Visual/GetInitData").json(versionModel).build();
     }
 }

@@ -34,5 +34,6 @@ public class Product {
     private String skuImg;
     private double price;
     private int count;
+    private String typeId;
 
 }

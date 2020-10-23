@@ -23,8 +23,11 @@ import android.widget.TextView;
 
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AlertDialog;
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.jakewharton.rxbinding3.view.RxView;
 import com.sunfusheng.daemon.DaemonHolder;
 import com.tencent.wxpayface.IWxPayfaceCallback;
@@ -32,6 +35,7 @@ import com.tencent.wxpayface.WxPayFace;
 import com.trello.rxlifecycle3.android.ActivityEvent;
 
 import java.io.File;
+import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +47,8 @@ import cn.csfz.wxpaypoint.activity.CloseDoorActivity;
 import cn.csfz.wxpaypoint.activity.NoticeActivity;
 import cn.csfz.wxpaypoint.activity.OpenDoorActivity;
 import cn.csfz.wxpaypoint.activity.ProductActivity;
+import cn.csfz.wxpaypoint.adapter.ProductAdapter;
+import cn.csfz.wxpaypoint.api.ProductApi;
 import cn.csfz.wxpaypoint.api.VersionApi;
 import cn.csfz.wxpaypoint.api.WxApi;
 import cn.csfz.wxpaypoint.base.BaseActivity;
@@ -51,6 +57,7 @@ import cn.csfz.wxpaypoint.compont.SolveObserver;
 import cn.csfz.wxpaypoint.model.AuthInfo;
 import cn.csfz.wxpaypoint.model.BaseEntity;
 import cn.csfz.wxpaypoint.model.Order;
+import cn.csfz.wxpaypoint.model.Product;
 import cn.csfz.wxpaypoint.model.VersionModel;
 import cn.csfz.wxpaypoint.util.ActivityCollector;
 import cn.csfz.wxpaypoint.util.Utils;
@@ -79,14 +86,19 @@ public class MainActivity extends BaseActivity {
     HubReceiver hubReceiver;
     @BindView(R.id.button)
     ImageView button;
-    @BindView(R.id.product_button)
-    ImageView productButton;
+//    @BindView(R.id.product_button)
+//    ImageView productButton;
     @BindView(R.id.notice_button)
     ImageView noticeButton;
     @BindView(R.id.quit_button)
     TextView quitButton;
     @BindView(R.id.machine_tv)
     TextView machineTv;
+
+    @BindView(R.id.recycler_view)
+    RecyclerView recyclerView;
+
+    ProductAdapter productAdapter;
 
     @Override
     protected boolean hasToolBar() {
@@ -117,7 +129,7 @@ public class MainActivity extends BaseActivity {
         getSecondDisplay();
         RxView.clicks(noticeButton).throttleFirst(1, TimeUnit.SECONDS).compose(ObservableUtils.lifeCycle(MainActivity.this, ActivityEvent.DESTROY)).subscribe(unit -> ActivityUtils.toActivity(self, NoticeActivity.class));
 
-        RxView.clicks(productButton).throttleFirst(1, TimeUnit.SECONDS).compose(ObservableUtils.lifeCycle(MainActivity.this, ActivityEvent.DESTROY)).subscribe(unit -> ActivityUtils.toActivity(self, ProductActivity.class));
+//        RxView.clicks(productButton).throttleFirst(1, TimeUnit.SECONDS).compose(ObservableUtils.lifeCycle(MainActivity.this, ActivityEvent.DESTROY)).subscribe(unit -> ActivityUtils.toActivity(self, ProductActivity.class));
         RxView.clicks(button).throttleFirst(1, TimeUnit.SECONDS).compose(ObservableUtils.lifeCycle(MainActivity.this, ActivityEvent.DESTROY)).subscribe(unit -> {
             if (qrCodeDialog != null && qrCodeDialog.isShowing()) {
                 qrCodeDialog.dismiss();
@@ -188,6 +200,10 @@ public class MainActivity extends BaseActivity {
                 }
             });
         });
+        recyclerView.setLayoutManager(new GridLayoutManager(self,4));
+        productAdapter =new ProductAdapter(R.layout.item_product,null);
+        recyclerView.setAdapter(productAdapter);
+
     }
 
     private String getWxVersion() {
@@ -319,9 +335,17 @@ public class MainActivity extends BaseActivity {
                             }
                         }
                         App.resetHub();
-                        machineTv.setText(versionModel.getMachineCode() + "");
+                        machineTv.setText("设备编号："+versionModel.getMachineCode());
                         updateApk(versionModel);
                         updateAd(versionModel);
+                        ProductApi.getProduct().request(new SolveObserver<BaseEntity<Object>>(self) {
+                            @Override
+                            public void onSolve(BaseEntity<Object> response) {
+                                Type type =new TypeToken<List<Product>>(){}.getType();
+                                List<Product> products = new Gson().fromJson(new Gson().toJson(response.getData()), type);
+                                productAdapter.setNewData(products);
+                            }
+                        });
                     }
                 }));
 
