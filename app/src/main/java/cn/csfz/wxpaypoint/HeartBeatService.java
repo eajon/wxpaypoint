@@ -56,7 +56,7 @@ public class HeartBeatService extends AbsHeartBeatService {
 
     @Override
     public long getHeartBeatMillis() {
-        return 30 * 1000;
+        return 60 * 1000;
     }
 
     @Override
@@ -146,6 +146,9 @@ public class HeartBeatService extends AbsHeartBeatService {
                     LogUtils.e(e.getMessage());
                 }
             }
+        }else
+        {
+            App.getHub().send("healthNotify","1");
         }
     }
 

@@ -19,6 +19,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import cn.csfz.wxpaypoint.R;
+import cn.csfz.wxpaypoint.util.MyTask;
 import cn.csfz.wxpaypoint.util.QRCodeUtil;
 import cn.csfz.wxpaypoint.util.QrCodeUtil2;
 import cn.csfz.wxpaypoint.util.Utils;
@@ -56,9 +57,9 @@ public class QrCodeDialog extends Dialog {
 //        BitmapDrawable bd = (BitmapDrawable) mContext.getResources().getDrawable(R.mipmap.fp_logo);
 //        Bitmap logoBitMap = bd.getBitmap();
         String updateTime = String.valueOf(System.currentTimeMillis());
-        Glide.with(mContext).load(qrImg).apply(new RequestOptions()).skipMemoryCache(true) // 不使用内存缓存
-                .diskCacheStrategy(DiskCacheStrategy.NONE) // 不使用磁盘缓存
-                .into(qrImage);
+//        RequestOptions options = new RequestOptions().skipMemoryCache(true).diskCacheStrategy(DiskCacheStrategy.NONE).timeout();
+        Glide.with(mContext).load(qrImg).apply(new RequestOptions().timeout(60000)).into(qrImage);
+//        new MyTask(qrImg,qrImage).execute();
         Window dialogWindow = this.getWindow();
         WindowManager.LayoutParams lp = dialogWindow.getAttributes();
         lp.width = dpToPx(this.getContext(), 280);
